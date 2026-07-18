@@ -1,0 +1,4 @@
+node_modules/
+*.log
+categories.json
+posts-order.json
