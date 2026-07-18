@@ -1,0 +1,96 @@
+<!-- Homepage — article card list -->
+<%
+// Compute sidebar data
+let allTags = []; let allCats = [];
+if (typeof posts !== 'undefined') {
+  // We'll pass tags/categories from route for sidebar
+}
+%>
+
+<div class="index-page">
+  <% if (posts && posts.length > 0) { %>
+    <% posts.forEach(function(post) { %>
+      <article itemscope itemtype="http://schema.org/Article" class="post-block">
+        <link itemprop="mainEntityOfPage" href="/post/<%= post.slug %>/">
+
+        <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <meta itemprop="name" content="<%= config.author %>">
+        </span>
+
+        <header class="post-header">
+          <h2 class="post-title" itemprop="name headline">
+            <a href="/post/<%= post.slug %>/" class="post-title-link" itemprop="url"><%= post.title %></a>
+          </h2>
+
+          <div class="post-meta">
+            <% if (post.date) { %>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon"><i class="far fa-calendar"></i></span>
+                <span class="post-meta-item-text">发表于</span>
+                <time title="创建时间：<%= formatDate(post.date) %>" itemprop="dateCreated datePublished" datetime="<%= post.date.toISOString() %>"><%= formatDate(post.date) %></time>
+              </span>
+            <% } %>
+            <% if (post.category) { %>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon"><i class="far fa-folder"></i></span>
+                <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/<%= encodeURIComponent(post.category) %>/" itemprop="url" rel="index"><span itemprop="name"><%= post.category %></span></a>
+                </span>
+              </span>
+            <% } %>
+          </div>
+        </header>
+
+        <div class="post-body" itemprop="articleBody">
+          <% if (post.summary) { %>
+            <p><%= post.summary %></p>
+          <% } else { %>
+            <% var text = post.body.replace(/<[^>]*>/g, '').substring(0, 200); %>
+            <p><%= text %><% if (post.body.replace(/<[^>]*>/g, '').length > 200) { %>...<% } %></p>
+          <% } %>
+
+          <div class="post-button">
+            <a href="/post/<%= post.slug %>/" class="btn" rel="contents">阅读全文 &raquo;</a>
+          </div>
+        </div>
+
+        <% if (post.tags && post.tags.length > 0) { %>
+          <footer class="post-footer">
+            <div class="post-tags">
+              <% post.tags.forEach(function(tag) { %>
+                <a href="/tags/<%= encodeURIComponent(tag) %>/" rel="tag">#<%= tag %></a>
+              <% }) %>
+            </div>
+          </footer>
+        <% } %>
+      </article>
+    <% }) %>
+
+    <!-- Pagination -->
+    <% if (totalPages > 1) { %>
+      <nav class="pagination">
+        <% if (page > 1) { %>
+          <a class="extend prev" rel="prev" href="/?page=<%= page - 1 %>"><i class="fa fa-angle-left"></i></a>
+        <% } %>
+
+        <% for (var i = 1; i <= totalPages; i++) { %>
+          <% if (i === page) { %>
+            <span class="page-number current"><%= i %></span>
+          <% } else { %>
+            <a class="page-number" href="/?page=<%= i %>"><%= i %></a>
+          <% } %>
+        <% } %>
+
+        <% if (page < totalPages) { %>
+          <a class="extend next" rel="next" href="/?page=<%= page + 1 %>"><i class="fa fa-angle-right"></i></a>
+        <% } %>
+      </nav>
+    <% } %>
+
+  <% } else { %>
+    <div class="empty-state">
+      <p>还没有文章，开始写第一篇吧！</p>
+    </div>
+  <% } %>
+</div>

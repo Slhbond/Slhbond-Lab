@@ -1,0 +1,13 @@
+<!-- About page -->
+<div class="about-page">
+  <div class="page-header">
+    <h1 class="page-title">关于</h1>
+  </div>
+
+  <div class="post-body">
+    <%- typeof aboutHtml !== 'undefined' ? aboutHtml : `
+    <blockquote><p>写代码，爱生活，记录技术与思考。</p></blockquote>
+    <p>欢迎来到我的博客。</p>
+    ` %>
+  </div>
+</div>

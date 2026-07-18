@@ -1,0 +1,40 @@
+<!-- Categories page — category list + filtered posts -->
+<%
+title = activeCat ? '分类: ' + activeCat : '分类';
+%>
+
+<div class="categories-page">
+  <div class="page-header">
+    <h1 class="page-title"><%= activeCat ? '分类: ' + activeCat : '文章分类' %></h1>
+    <p class="page-subtitle">共 <%= categories.length %> 个分类</p>
+  </div>
+
+  <!-- Category list -->
+  <div class="category-list">
+    <% categories.forEach(function(c) { %>
+      <a href="/categories/<%= encodeURIComponent(c.name) %>/" class="category-item <%= activeCat === c.name ? 'active' : '' %>">
+        <span class="category-name"><%= c.name %></span>
+        <span class="category-count"><%= c.count %></span>
+      </a>
+    <% }) %>
+  </div>
+
+  <!-- Filtered posts -->
+  <% if (activeCat && posts.length > 0) { %>
+    <div class="category-posts">
+      <h2 class="category-posts-title">分类 "<%= activeCat %>" 下的文章</h2>
+      <ul class="archive-list">
+        <% posts.forEach(function(post) { %>
+          <li class="archive-item">
+            <span class="archive-item-date"><%= formatDate(post.date) %></span>
+            <a href="/post/<%= post.slug %>/" class="archive-item-title"><%= post.title %></a>
+          </li>
+        <% }) %>
+      </ul>
+    </div>
+  <% } else if (activeCat) { %>
+    <div class="empty-state">
+      <p>分类 "<%= activeCat %>" 下还没有文章</p>
+    </div>
+  <% } %>
+</div>

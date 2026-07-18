@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+  <meta name="theme-color" content="#222">
+  <meta name="description" content="<%= config.description %>">
+  <meta property="og:type" content="<%= typeof post !== 'undefined' ? 'article' : 'website' %>">
+  <meta property="og:title" content="<%= typeof title !== 'undefined' ? title : config.title %>">
+  <meta property="og:url" content="<%= config.url || '' %><%= currentPath %>">
+  <meta property="og:site_name" content="<%= config.title %>">
+  <meta property="og:description" content="<%= typeof post !== 'undefined' ? (post.summary || post.title) : config.description %>">
+  <meta property="article:author" content="<%= config.author %>">
+  <title><%= typeof title !== 'undefined' ? title + ' | ' + config.title : config.title %></title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner">
+        <div class="site-brand-container">
+          <div class="site-nav-toggle">
+            <div class="toggle" aria-label="切换导航栏" onclick="document.querySelector('.site-nav').classList.toggle('site-nav-on')">
+              <span class="toggle-line toggle-line-first"></span>
+              <span class="toggle-line toggle-line-middle"></span>
+              <span class="toggle-line toggle-line-last"></span>
+            </div>
+          </div>
+
+          <div class="site-meta">
+            <a href="/" class="brand" rel="start">
+              <h1 class="site-title"><%= config.title %></h1>
+            </a>
+            <% if (config.subtitle) { %>
+              <p class="site-subtitle"><%= config.subtitle %></p>
+            <% } %>
+          </div>
+
+          <div class="site-nav-right">
+            <div class="search-trigger" onclick="toggleSearch()" title="搜索">
+              <i class="fa fa-search"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- Search popup -->
+        <div class="search-popup" id="searchPopup">
+          <div class="search-popup-mask" onclick="toggleSearch()"></div>
+          <div class="search-popup-inner">
+            <div class="search-input-wrap">
+              <i class="fa fa-search"></i>
+              <input type="text" id="searchInput" class="search-input" placeholder="搜索文章..." autocomplete="off"
+                     oninput="doSearch(this.value)">
+              <span class="search-close" onclick="toggleSearch()">&times;</span>
+            </div>
+            <div class="search-results" id="searchResults">
+              <div class="search-hint">输入关键词搜索文章标题、标签、内容...</div>
+            </div>
+          </div>
+        </div>
+
+        <nav class="site-nav">
+          <ul class="main-menu menu">
+            <% Object.entries(config.menu).forEach(([key, item]) => { %>
+              <li class="menu-item menu-item-<%= key %>">
+                <a href="<%= item.path %>" rel="section" class="<%= currentPath === item.path ? 'active' : '' %>">
+                  <i class="fa <%= item.icon %> fa-fw"></i><%= item.label %>
+                </a>
+              </li>
+            <% }) %>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div class="content">
+            <%- body %>
+          </div>
+        </div>
+
+        <!-- Sidebar removed -->
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        <div class="copyright">
+          &copy; 2026-<span itemprop="copyrightYear"><%= new Date().getFullYear() %></span>
+          <span class="author" itemprop="copyrightHolder">slh＆科技小菜</span>
+        </div>
+        <div class="powered-by">
+          由 <a href="https://nodejs.org/" target="_blank">Node.js</a> & <a href="https://expressjs.com/" target="_blank">Express</a> 驱动
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Back to top -->
+  <div class="back-to-top" id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+    <i class="fa fa-arrow-up"></i>
+    <span class="scroll-percent">0%</span>
+  </div>
+
+  <script>
+    // Mobile nav toggle
+    document.addEventListener('DOMContentLoaded', function() {
+      // Back to top visibility + scroll percent
+      var btn = document.getElementById('backToTop');
+      var percent = btn.querySelector('.scroll-percent');
+      window.addEventListener('scroll', function() {
+        var h = document.documentElement;
+        var st = h.scrollTop || document.body.scrollTop;
+        var sh = h.scrollHeight - h.clientHeight;
+        var pct = sh > 0 ? Math.round(st / sh * 100) : 0;
+        if (percent) percent.textContent = pct + '%';
+        btn.classList.toggle('back-to-top-on', st > 200);
+      });
+    });
+
+    // Code copy — textarea fallback for HTTP compatibility
+    function copyCode(btn) {
+      var fig = btn.closest('figure.highlight');
+      var code = fig.querySelector('td.code code');
+      if (!code) return;
+      var lines = code.querySelectorAll('.line');
+      var text = '';
+      lines.forEach(function(l) { text += (l.textContent || l.innerText) + '\n'; });
+
+      // Try clipboard API first (works on HTTPS / localhost)
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() {
+          showCopied(btn);
+        }).catch(function() {
+          fallbackCopy(text, btn);
+        });
+      } else {
+        fallbackCopy(text, btn);
+      }
+    }
+
+    function fallbackCopy(text, btn) {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      ta.style.top = '-9999px';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      try {
+        document.execCommand('copy');
+        showCopied(btn);
+      } catch(e) {
+        // Silent fail
+      }
+      document.body.removeChild(ta);
+    }
+
+    function showCopied(btn) {
+      btn.classList.add('copied');
+      btn.innerHTML = '<i class="fa-solid fa-check"></i>';
+      setTimeout(function() {
+        btn.classList.remove('copied');
+        btn.innerHTML = '<i class="fa-regular fa-copy"></i>';
+      }, 1500);
+    }
+
+    // Search
+    var searchData = [];
+    var searchLoaded = false;
+
+    function loadSearchData() {
+      if (searchLoaded) return;
+      fetch('/search.json')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          searchData = data;
+          searchLoaded = true;
+        });
+    }
+
+    function toggleSearch() {
+      var popup = document.getElementById('searchPopup');
+      var isOpen = popup.classList.contains('active');
+      if (isOpen) {
+        popup.classList.remove('active');
+        document.body.style.overflow = '';
+      } else {
+        popup.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        loadSearchData();
+        setTimeout(function() {
+          document.getElementById('searchInput').focus();
+        }, 100);
+      }
+    }
+
+    function doSearch(query) {
+      var container = document.getElementById('searchResults');
+      if (!query || query.trim().length < 1) {
+        container.innerHTML = '<div class="search-hint">输入关键词搜索文章标题、标签、内容...</div>';
+        return;
+      }
+      if (!searchData.length) {
+        container.innerHTML = '<div class="search-hint">正在加载搜索数据...</div>';
+        loadSearchData();
+        return;
+      }
+
+      var q = query.toLowerCase().trim();
+      var results = [];
+      searchData.forEach(function(post) {
+        var score = 0;
+        var titleMatch = post.title.toLowerCase().indexOf(q);
+        if (titleMatch !== -1) score += 100 - titleMatch;
+        post.tags.forEach(function(tag) {
+          if (tag.toLowerCase().indexOf(q) !== -1) score += 50;
+        });
+        if (post.category.toLowerCase().indexOf(q) !== -1) score += 30;
+        var textIdx = post.text.toLowerCase().indexOf(q);
+        if (textIdx !== -1) score += 10 - Math.min(textIdx / 100, 5);
+        if (post.summary.toLowerCase().indexOf(q) !== -1) score += 15;
+        if (score > 0) results.push({ post: post, score: score });
+      });
+
+      results.sort(function(a, b) { return b.score - a.score; });
+
+      if (results.length === 0) {
+        container.innerHTML = '<div class="search-no-results">没有找到匹配的文章</div>';
+        return;
+      }
+
+      var html = '';
+      results.slice(0, 15).forEach(function(r) {
+        var p = r.post;
+        var title = highlightText(p.title, q);
+        html += '<a href="/post/' + p.slug + '/" class="search-result-item">'
+          + '<div class="search-result-title">' + title + '</div>'
+          + '<div class="search-result-meta">'
+          + '<span><i class="far fa-calendar"></i> ' + p.date + '</span>'
+          + (p.category ? '<span><i class="far fa-folder"></i> ' + p.category + '</span>' : '')
+          + '</div>'
+          + '</a>';
+      });
+      container.innerHTML = html;
+    }
+
+    function highlightText(text, query) {
+      var re = new RegExp('(' + query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+      return text.replace(re, '<mark>$1</mark>');
+    }
+
+    // ESC to close search
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        var popup = document.getElementById('searchPopup');
+        if (popup.classList.contains('active')) toggleSearch();
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!-- Single post page -->
+<% var pageTitle = post.title; %>
+<%
+// Pass data to layout
+title = post.title;
+%>
+
+<article itemscope itemtype="http://schema.org/Article" class="post-block post-page">
+  <link itemprop="mainEntityOfPage" href="/post/<%= post.slug %>/">
+
+  <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <meta itemprop="name" content="<%= config.author %>">
+  </span>
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline"><%= post.title %></h1>
+
+    <div class="post-meta">
+      <% if (post.date) { %>
+        <span class="post-meta-item">
+          <span class="post-meta-item-icon"><i class="far fa-calendar"></i></span>
+          <span class="post-meta-item-text">发表于</span>
+          <time title="创建时间：<%= formatDate(post.date) %>" itemprop="dateCreated datePublished" datetime="<%= post.date.toISOString() %>"><%= formatDate(post.date) %></time>
+        </span>
+      <% } %>
+      <% if (post.category) { %>
+        <span class="post-meta-item">
+          <span class="post-meta-item-icon"><i class="far fa-folder"></i></span>
+          <span class="post-meta-item-text">分类于</span>
+          <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+            <a href="/categories/<%= encodeURIComponent(post.category) %>/" itemprop="url" rel="index"><span itemprop="name"><%= post.category %></span></a>
+          </span>
+        </span>
+      <% } %>
+    </div>
+  </header>
+
+  <div class="post-body" itemprop="articleBody">
+    <% if (post.excerpt) { %>
+      <div class="post-excerpt"><%= post.excerpt %></div>
+    <% } %>
+    <%- post.html %>
+  </div>
+
+  <% if (post.tags && post.tags.length > 0) { %>
+    <footer class="post-footer">
+      <div class="post-tags">
+        <% post.tags.forEach(function(tag) { %>
+          <a href="/tags/<%= encodeURIComponent(tag) %>/" rel="tag">#<%= tag %></a>
+        <% }) %>
+      </div>
+    </footer>
+  <% } %>
+
+  <nav class="post-nav">
+    <div class="post-nav-item">
+      <a href="/">&larr; 返回首页</a>
+    </div>
+  </nav>
+</article>

@@ -1,0 +1,44 @@
+<!-- Archives page — one big dot per day, small time per post -->
+<%
+title = '归档';
+function fmtDate(dateStr) {
+  var parts = dateStr.split('-');
+  return parts[1] + '-' + parts[2];
+}
+%>
+
+<div class="archive-page">
+  <div class="posts-collapse">
+
+    <div class="collection-title">
+      <span class="collection-header">太棒了! 目前共计 <%= totalPosts %> 篇日志。 继续努力。</span>
+    </div>
+
+    <% if (archives && archives.length > 0) { %>
+      <% archives.forEach(function(yearGroup) { %>
+        <div class="collection-year">
+          <span class="collection-header"><%= yearGroup.year %></span>
+        </div>
+
+        <% yearGroup.dates.forEach(function(dateGroup) { %>
+          <div class="archive-day-group">
+            <div class="archive-day-dot">
+              <span class="archive-date-big"><%= fmtDate(dateGroup.date) %></span>
+            </div>
+            <div class="archive-day-posts">
+              <% dateGroup.posts.forEach(function(post) { %>
+                <div class="archive-post-row">
+                  <span class="archive-time-small"><%= post.time %></span>
+                  <a class="post-title-link" href="/post/<%= post.slug %>/"><%= post.title %></a>
+                </div>
+              <% }) %>
+            </div>
+          </div>
+        <% }) %>
+      <% }) %>
+    <% } else { %>
+      <div class="empty-state"><p>还没有文章</p></div>
+    <% } %>
+
+  </div>
+</div>
