@@ -1,0 +1,19 @@
+<div class="card">
+  <div class="card-header">
+    <h2>关于页面</h2>
+    <span style="font-size:0.85em;color:#999;">编辑 /about 页面内容</span>
+  </div>
+
+  <% if (typeof success !== 'undefined' && success) { %>
+    <div class="alert alert-success"><%= success %></div>
+  <% } %>
+
+  <form method="POST" action="/admin/about">
+    <div class="form-group">
+      <label>内容（Markdown 格式）</label>
+      <textarea name="body" class="form-textarea" rows="20" placeholder="用 Markdown 写关于页面..."><%= aboutBody %></textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">保存</button>
+    <a href="/about/" target="_blank" class="btn btn-outline">预览</a>
+  </form>
+</div>

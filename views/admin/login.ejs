@@ -1,0 +1,16 @@
+<div style="display:flex;justify-content:center;align-items:center;min-height:70vh;">
+  <div style="background:#fff;border-radius:10px;box-shadow:0 4px 24px rgba(0,0,0,0.08);padding:44px;width:100%;max-width:400px;text-align:center;">
+    <h2 style="margin-bottom:6px;">后台登录</h2>
+    <p style="color:#999;font-size:0.875em;margin-bottom:24px;"><%= config.title %></p>
+    <% if (typeof error !== 'undefined' && error) { %>
+      <div class="alert alert-error"><%= error %></div>
+    <% } %>
+    <form method="POST" action="/admin/login">
+      <div class="form-group">
+        <input type="password" name="password" class="form-input" placeholder="请输入管理密码" autofocus style="text-align:center;font-size:1.1em;padding:12px;">
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:12px;font-size:1em;">登 录</button>
+    </form>
+    <p style="margin-top:20px;font-size:0.85em;"><a href="/" style="color:#999;">&larr; 返回网站</a></p>
+  </div>
+</div>

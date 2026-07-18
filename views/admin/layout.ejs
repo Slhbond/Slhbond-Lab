@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= typeof title !== 'undefined' ? title + ' - ' : '' %>后台管理</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Lato, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f0f2f5; color: #333; display: flex; min-height: 100vh; }
+    a { text-decoration: none; color: #333; }
+
+    /* Sidebar */
+    .admin-sidebar {
+      width: 220px; background: #1a1a2e; color: #ccc; flex-shrink: 0;
+      display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; z-index: 100;
+    }
+    .admin-brand {
+      padding: 24px 20px; border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .admin-brand h2 { color: #fff; font-size: 1.1em; }
+    .admin-brand p { color: #888; font-size: 0.75em; margin-top: 4px; }
+
+    .admin-nav { flex: 1; padding: 12px 0; }
+    .admin-nav a {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 20px; color: #aaa; font-size: 0.9em; transition: all 0.15s;
+      border-left: 3px solid transparent;
+    }
+    .admin-nav a:hover { background: rgba(255,255,255,0.05); color: #eee; }
+    .admin-nav a.active { background: rgba(255,255,255,0.08); color: #fff; border-left-color: #4fc3f7; }
+
+    .admin-sidebar-footer {
+      padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.08); font-size: 0.8em;
+    }
+    .admin-sidebar-footer a { color: #888; }
+    .admin-sidebar-footer a:hover { color: #ccc; }
+
+    /* Main content */
+    .admin-main { margin-left: 220px; flex: 1; min-width: 0; }
+    .admin-topbar {
+      background: #fff; padding: 14px 30px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .admin-topbar h3 { font-size: 1.1em; color: #555; }
+    .admin-topbar .user-info { font-size: 0.85em; color: #999; }
+    .admin-topbar .user-info a { color: #999; margin-left: 12px; }
+    .admin-topbar .user-info a:hover { color: #333; }
+
+    .admin-content { padding: 24px 30px; }
+
+    /* Shared components */
+    .card {
+      background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      padding: 24px; margin-bottom: 20px;
+    }
+    .card-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #eee;
+    }
+    .card-header h2 { font-size: 1.15em; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 8px 16px; border-radius: 5px; font-size: 0.875em;
+      cursor: pointer; border: none; transition: all 0.15s;
+    }
+    .btn-primary { background: #1a1a2e; color: #fff; }
+    .btn-primary:hover { background: #333; }
+    .btn-outline { background: #fff; color: #555; border: 1px solid #ddd; }
+    .btn-outline:hover { background: #f5f5f5; }
+    .btn-danger { background: #e04040; color: #fff; }
+    .btn-danger:hover { background: #c03030; }
+    .btn-sm { padding: 4px 10px; font-size: 0.8em; }
+    .btn-xs { padding: 2px 8px; font-size: 0.75em; border-radius: 3px; }
+
+    /* Table */
+    .table {
+      width: 100%; border-collapse: collapse;
+    }
+    .table th {
+      background: #fafafa; text-align: left; padding: 10px 14px;
+      font-size: 0.8em; color: #888; text-transform: uppercase; letter-spacing: 0.5px;
+      border-bottom: 2px solid #eee;
+    }
+    .table td {
+      padding: 10px 14px; border-bottom: 1px solid #f0f0f0; font-size: 0.9em;
+    }
+    .table tr:hover td { background: #fafafa; }
+    .table .actions { white-space: nowrap; text-align: right; }
+
+    /* Forms */
+    .form-group { margin-bottom: 18px; }
+    .form-group label { display: block; font-size: 0.85em; font-weight: 600; margin-bottom: 5px; color: #555; }
+    .form-input, .form-textarea, .form-select {
+      width: 100%; border: 1.5px solid #ddd; border-radius: 5px; padding: 9px 13px;
+      font-size: 0.9em; font-family: inherit; transition: border-color 0.15s;
+    }
+    .form-input:focus, .form-textarea:focus, .form-select:focus { border-color: #1a1a2e; outline: none; }
+    .form-textarea { resize: vertical; font-family: "Source Code Pro", Consolas, Monaco, monospace; line-height: 1.6; }
+    .form-row { display: flex; gap: 15px; }
+    .form-row .form-group { flex: 1; }
+    .form-hint { font-size: 0.78em; color: #999; margin-top: 3px; }
+
+    /* Alerts */
+    .alert { padding: 10px 14px; border-radius: 5px; margin-bottom: 16px; font-size: 0.875em; }
+    .alert-success { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
+    .alert-error { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
+
+    /* Tag badges */
+    .tag-badge {
+      background: #e8e8e8; color: #666; border-radius: 3px; padding: 2px 8px;
+      font-size: 0.8em; display: inline-block; margin: 2px 4px 2px 0;
+    }
+
+    /* Stats */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stat-card {
+      background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      padding: 20px; text-align: center;
+    }
+    .stat-card .stat-num { font-size: 2em; font-weight: bold; color: #1a1a2e; }
+    .stat-card .stat-label { font-size: 0.8em; color: #999; margin-top: 4px; }
+
+    /* Sort handles */
+    .sort-btn { background: none; border: none; cursor: pointer; color: #bbb; padding: 2px 4px; font-size: 1em; }
+    .sort-btn:hover { color: #555; }
+    .sort-btn:disabled { color: #eee; cursor: default; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .admin-sidebar { width: 60px; }
+      .admin-sidebar .admin-brand h2, .admin-sidebar .admin-brand p,
+      .admin-nav a span, .admin-sidebar-footer span { display: none; }
+      .admin-nav a { justify-content: center; padding: 12px; }
+      .admin-main { margin-left: 60px; }
+      .admin-content { padding: 16px; }
+      .form-row { flex-direction: column; }
+      .admin-topbar { padding: 10px 16px; }
+    }
+  </style>
+</head>
+<body>
+  <aside class="admin-sidebar">
+    <div class="admin-brand">
+      <h2>后台管理</h2>
+    </div>
+    <nav class="admin-nav">
+      <a href="/admin/" class="<%= currentPath === '/admin/' ? 'active' : '' %>">
+        <i class="fa fa-dashboard"></i> <span>仪表盘</span>
+      </a>
+      <a href="/admin/posts" class="<%= currentPath.startsWith('/admin/posts') ? 'active' : '' %>">
+        <i class="fa fa-file-alt"></i> <span>文章管理</span>
+      </a>
+      <a href="/admin/tags" class="<%= currentPath === '/admin/tags' ? 'active' : '' %>">
+        <i class="fa fa-tags"></i> <span>标签管理</span>
+      </a>
+      <a href="/admin/categories" class="<%= currentPath === '/admin/categories' ? 'active' : '' %>">
+        <i class="fa fa-folder"></i> <span>分类管理</span>
+      </a>
+      <a href="/admin/about" class="<%= currentPath === '/admin/about' ? 'active' : '' %>">
+        <i class="fa fa-user"></i> <span>关于页面</span>
+      </a>
+      <a href="/admin/settings" class="<%= currentPath === '/admin/settings' ? 'active' : '' %>">
+        <i class="fa fa-cog"></i> <span>站点设置</span>
+      </a>
+    </nav>
+    <div class="admin-sidebar-footer">
+      <a href="/" target="_blank"><i class="fa fa-external-link"></i> <span>查看网站</span></a>
+    </div>
+  </aside>
+
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <h3><%= typeof pageTitle !== 'undefined' ? pageTitle : title %></h3>
+      <div class="user-info">
+        已登录 <a href="/admin/logout"><i class="fa fa-sign-out"></i> 退出</a>
+      </div>
+    </div>
+    <div class="admin-content">
+      <%- body %>
+    </div>
+  </div>
+</body>
+</html>

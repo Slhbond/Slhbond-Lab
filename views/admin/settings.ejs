@@ -1,0 +1,36 @@
+<div class="card">
+  <div class="card-header">
+    <h2>站点设置</h2>
+    <span style="font-size:0.85em;color:#999;">修改站点基本信息和首页头部</span>
+  </div>
+
+  <% if (typeof success !== 'undefined' && success) { %>
+    <div class="alert alert-success"><%= success %></div>
+  <% } %>
+  <% if (typeof error !== 'undefined' && error) { %>
+    <div class="alert alert-error"><%= error %></div>
+  <% } %>
+
+  <form method="POST" action="/admin/settings">
+    <div class="form-row">
+      <div class="form-group">
+        <label>站点标题 *</label>
+        <input type="text" name="title" class="form-input" value="<%= settings.title %>" required>
+        <div class="form-hint">显示在首页顶部的标题</div>
+      </div>
+      <div class="form-group">
+        <label>副标题</label>
+        <input type="text" name="subtitle" class="form-input" value="<%= settings.subtitle %>">
+        <div class="form-hint">标题下方的描述文字</div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>管理密码</label>
+      <input type="password" name="adminPassword" class="form-input" value="<%= settings.adminPassword %>">
+      <div class="form-hint">留空则不修改密码</div>
+    </div>
+
+    <button type="submit" class="btn btn-primary">保存设置</button>
+  </form>
+</div>

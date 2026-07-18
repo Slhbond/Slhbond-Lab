@@ -1,0 +1,115 @@
+<div class="card">
+  <div class="card-header">
+    <h2>文章管理 <span style="color:#999;font-weight:normal;font-size:0.85em;">(<%= posts.length %> 篇)</span></h2>
+    <a href="/admin/posts/new" class="btn btn-primary"><i class="fa fa-plus"></i> 新建文章</a>
+  </div>
+
+  <% if (typeof success !== 'undefined' && success) { %>
+    <div class="alert alert-success"><%= success %></div>
+  <% } %>
+
+  <% if (posts.length > 0) { %>
+    <div style="overflow-x:auto;">
+    <table class="table">
+      <thead>
+        <tr>
+          <th style="width:60px;">排序</th>
+          <th>标题</th>
+          <th style="width:110px;">日期</th>
+          <th style="width:100px;">分类</th>
+          <th>标签</th>
+          <th style="width:100px;">操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% posts.forEach(function(p, idx) { %>
+          <tr>
+            <td style="text-align:center;">
+              <button class="sort-btn" onclick="movePost('<%= p.slug %>', 'up')" <%= idx === 0 ? 'disabled' : '' %> title="上移">&#9650;</button>
+              <button class="sort-btn" onclick="movePost('<%= p.slug %>', 'down')" <%= idx === posts.length - 1 ? 'disabled' : '' %> title="下移">&#9660;</button>
+            </td>
+            <td>
+              <a href="/post/<%= p.slug %>/" target="_blank" style="font-weight:500;"><%= p.title %></a>
+              <% if (p.summary) { %><div style="font-size:0.78em;color:#999;margin-top:2px;"><%= p.summary.substring(0, 60) %>...</div><% } %>
+            </td>
+            <td style="white-space:nowrap;font-size:0.85em;color:#888;">
+              <input type="date" value="<%= p.date ? formatDate(p.date) : '' %>"
+                     onchange="updateDate('<%= p.slug %>', this.value)"
+                     style="border:1px solid #eee;border-radius:3px;padding:3px 6px;font-size:0.85em;width:110px;">
+            </td>
+            <td>
+              <input type="text" value="<%= p.category || '' %>" placeholder="分类"
+                     onchange="updateField('<%= p.slug %>', 'category', this.value)"
+                     style="border:1px solid #eee;border-radius:3px;padding:3px 6px;font-size:0.85em;width:90px;">
+            </td>
+            <td>
+              <% (p.tags || []).forEach(function(t) { %>
+                <span class="tag-badge">
+                  <%= t %>
+                  <a href="javascript:void(0)" onclick="removeTag('<%= p.slug %>', '<%= t %>')"
+                     style="color:#999;margin-left:2px;text-decoration:none;" title="移除标签">&times;</a>
+                </span>
+              <% }) %>
+              <a href="javascript:void(0)" onclick="addTag('<%= p.slug %>')"
+                 style="font-size:0.78em;color:#4fc3f7;text-decoration:none;">+标签</a>
+            </td>
+            <td class="actions">
+              <a href="/admin/posts/edit/<%= p.slug %>" class="btn btn-sm btn-outline">编辑</a>
+              <form method="POST" action="/admin/posts/delete/<%= p.slug %>" style="display:inline;"
+                    onsubmit="return confirm('确定删除「<%= p.title %>」？')">
+                <button type="submit" class="btn btn-sm btn-danger">删除</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+    </div>
+  <% } else { %>
+    <div style="text-align:center;padding:40px;color:#999;">
+      <p>还没有文章</p>
+      <a href="/admin/posts/new" class="btn btn-primary" style="margin-top:12px;">写第一篇</a>
+    </div>
+  <% } %>
+</div>
+
+<script>
+function movePost(slug, dir) {
+  fetch('/admin/posts/move', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: 'slug=' + encodeURIComponent(slug) + '&dir=' + dir
+  }).then(r => { if (r.ok) location.reload(); });
+}
+function updateDate(slug, date) {
+  fetch('/admin/posts/update-field', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: 'slug=' + encodeURIComponent(slug) + '&field=date&value=' + encodeURIComponent(date)
+  });
+}
+function updateField(slug, field, value) {
+  fetch('/admin/posts/update-field', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: 'slug=' + encodeURIComponent(slug) + '&field=' + encodeURIComponent(field) + '&value=' + encodeURIComponent(value)
+  });
+}
+function removeTag(slug, tag) {
+  if (!confirm('从「' + slug + '」中移除标签「' + tag + '」？')) return;
+  fetch('/admin/posts/remove-tag', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: 'slug=' + encodeURIComponent(slug) + '&tag=' + encodeURIComponent(tag)
+  }).then(r => { if (r.ok) location.reload(); });
+}
+function addTag(slug) {
+  var tag = prompt('输入要添加的标签：');
+  if (!tag) return;
+  fetch('/admin/posts/add-tag', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: 'slug=' + encodeURIComponent(slug) + '&tag=' + encodeURIComponent(tag.trim())
+  }).then(r => { if (r.ok) location.reload(); });
+}
+</script>

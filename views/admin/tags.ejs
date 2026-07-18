@@ -1,0 +1,69 @@
+<div class="card">
+  <div class="card-header">
+    <h2>标签管理 <span style="color:#999;font-weight:normal;font-size:0.85em;">(<%= tags.length %> 个)</span></h2>
+    <button class="btn btn-primary btn-sm" onclick="addNewTag()"><i class="fa fa-plus"></i> 添加标签</button>
+  </div>
+
+  <% if (typeof success !== 'undefined' && success) { %>
+    <div class="alert alert-success"><%= success %></div>
+  <% } %>
+  <% if (typeof error !== 'undefined' && error) { %>
+    <div class="alert alert-error"><%= error %></div>
+  <% } %>
+
+  <% if (tags.length > 0) { %>
+    <table class="table">
+      <thead><tr><th>标签名</th><th>文章数</th><th style="width:200px;">操作</th></tr></thead>
+      <tbody>
+        <% tags.forEach(function(t) { %>
+          <tr>
+            <td><span class="tag-badge" style="font-size:1em;padding:3px 12px;"><%= t.name %></span></td>
+            <td><%= t.count %> 篇</td>
+            <td class="actions">
+              <button class="btn btn-sm btn-outline" onclick="renameTag('<%= t.name %>')">重命名</button>
+              <form method="POST" action="/admin/tags/delete" style="display:inline;"
+                    onsubmit="return confirm('确定删除标签「<%= t.name %>」？\n将从 <%= t.count %> 篇文章中移除此标签。')">
+                <input type="hidden" name="tag" value="<%= t.name %>">
+                <button type="submit" class="btn btn-sm btn-danger">删除</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } else { %>
+    <div style="text-align:center;padding:30px;color:#999;">还没有标签</div>
+  <% } %>
+</div>
+
+<script>
+function renameTag(oldName) {
+  var newName = prompt('将「' + oldName + '」重命名为：', oldName);
+  if (!newName || newName === oldName) return;
+  var form = document.createElement('form');
+  form.method = 'POST';
+  form.action = '/admin/tags/rename';
+  var oldInput = document.createElement('input');
+  oldInput.type = 'hidden'; oldInput.name = 'old'; oldInput.value = oldName;
+  var newInput = document.createElement('input');
+  newInput.type = 'hidden'; newInput.name = 'new'; newInput.value = newName;
+  form.appendChild(oldInput); form.appendChild(newInput);
+  document.body.appendChild(form);
+  form.submit();
+}
+function addNewTag() {
+  var tagName = prompt('输入新标签名：');
+  if (!tagName) return;
+  var slug = prompt('添加到哪篇文章？（输入文章 slug，留空则跳过）：');
+  var form = document.createElement('form');
+  form.method = 'POST';
+  form.action = '/admin/tags/add';
+  var tagInput = document.createElement('input');
+  tagInput.type = 'hidden'; tagInput.name = 'tag'; tagInput.value = tagName;
+  var slugInput = document.createElement('input');
+  slugInput.type = 'hidden'; slugInput.name = 'slug'; slugInput.value = slug || '';
+  form.appendChild(tagInput); form.appendChild(slugInput);
+  document.body.appendChild(form);
+  form.submit();
+}
+</script>

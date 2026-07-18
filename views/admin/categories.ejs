@@ -1,0 +1,63 @@
+<div class="card">
+  <div class="card-header">
+    <h2>分类管理 <span style="color:#999;font-weight:normal;font-size:0.85em;">(<%= categories.length %> 个)</span></h2>
+    <button class="btn btn-primary btn-sm" onclick="addCategory()"><i class="fa fa-plus"></i> 添加分类</button>
+  </div>
+
+  <% if (typeof success !== 'undefined' && success) { %>
+    <div class="alert alert-success"><%= success %></div>
+  <% } %>
+
+  <% if (categories.length > 0) { %>
+    <table class="table">
+      <thead><tr><th>分类名</th><th>文章数</th><th style="width:200px;">操作</th></tr></thead>
+      <tbody>
+        <% categories.forEach(function(c) { %>
+          <tr>
+            <td><strong><%= c.name %></strong></td>
+            <td><%= c.count %> 篇</td>
+            <td class="actions">
+              <button class="btn btn-sm btn-outline" onclick="renameCat('<%= c.name %>')">重命名</button>
+              <form method="POST" action="/admin/categories/delete" style="display:inline;"
+                    onsubmit="return confirm('确定删除分类「<%= c.name %>」？\n将从 <%= c.count %> 篇文章中移除此分类。')">
+                <input type="hidden" name="cat" value="<%= c.name %>">
+                <button type="submit" class="btn btn-sm btn-danger">删除</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } else { %>
+    <div style="text-align:center;padding:30px;color:#999;">还没有分类</div>
+  <% } %>
+</div>
+
+<script>
+function renameCat(oldName) {
+  var newName = prompt('将「' + oldName + '」重命名为：', oldName);
+  if (!newName || newName === oldName) return;
+  var form = document.createElement('form');
+  form.method = 'POST';
+  form.action = '/admin/categories/rename';
+  var o = document.createElement('input');
+  o.type = 'hidden'; o.name = 'old'; o.value = oldName;
+  var n = document.createElement('input');
+  n.type = 'hidden'; n.name = 'new'; n.value = newName;
+  form.appendChild(o); form.appendChild(n);
+  document.body.appendChild(form);
+  form.submit();
+}
+function addCategory() {
+  var name = prompt('输入新分类名称：');
+  if (!name) return;
+  var form = document.createElement('form');
+  form.method = 'POST';
+  form.action = '/admin/categories/add';
+  var input = document.createElement('input');
+  input.type = 'hidden'; input.name = 'cat'; input.value = name;
+  form.appendChild(input);
+  document.body.appendChild(form);
+  form.submit();
+}
+</script>
