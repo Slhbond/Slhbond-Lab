@@ -1,262 +1,1139 @@
 <%
-var isEdit = typeof post !== 'undefined' && post.slug;
-var today = new Date().toISOString().slice(0, 10);
-var formDate = isEdit && post.date ? formatDate(post.date) : today;
-var formTime = isEdit && post.time ? post.time : '';
-var formTags = isEdit && post.tags ? post.tags.join(', ') : '';
+var isEdit = !!(typeof post !== 'undefined' && post && post.slug);
+var currentSlug = isEdit ? post.slug : '';
+var formTitle = isEdit ? post.title : '';
+var formDate = (isEdit && post.dateStr) ? post.dateStr : (typeof today !== 'undefined' ? today : '');
+var formTime = (isEdit && post.time) ? post.time : (typeof nowTime !== 'undefined' ? nowTime : '');
+var formCategory = (isEdit && post.category) ? post.category : '';
+var formTags = (isEdit && post.tags) ? post.tags.join(', ') : '';
+var formSummary = (isEdit && post.summary) ? post.summary : '';
+var formExcerpt = (isEdit && post.excerpt) ? post.excerpt : '';
+var formBody = (isEdit && post.body) ? post.body : '';
+var formSlug = (isEdit && post.slug) ? post.slug : '';
 %>
 
-<div class="card">
-  <div class="card-header">
-    <h2><%= isEdit ? '编辑文章' : '新建文章' %></h2>
-    <div style="display:flex;gap:8px;">
-      <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('fileUpload').click()">
-        <i class="fa fa-upload"></i> 上传 MD
-      </button>
-      <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('imgUpload').click()">
-        <i class="fa fa-image"></i> 上传图片
-      </button>
-      <a href="/admin/posts" class="btn btn-outline btn-sm">&larr; 返回列表</a>
+<% if (typeof error !== 'undefined' && error) { %>
+  <div class="alert alert-error"><i class="fa fa-exclamation-circle"></i> <%= error %></div>
+<% } %>
+
+<div class="editor-shell">
+  <div class="draft-banner" id="draftBanner" hidden>
+    <div class="draft-banner-text">
+      <i class="fa fa-history"></i>
+      <span>发现本地草稿 <strong id="draftTime"></strong>，尚未发布。</span>
+    </div>
+    <div class="draft-banner-actions">
+      <button type="button" class="btn btn-sm btn-primary" id="draftRestore">恢复草稿</button>
+      <button type="button" class="btn btn-sm btn-outline" id="draftDiscard">丢弃</button>
     </div>
   </div>
 
-  <form method="POST" action="<%= isEdit ? '/admin/posts/edit/' + post.slug : '/admin/posts/new' %>" id="postForm">
-    <!-- Hidden file inputs -->
-    <input type="file" id="fileUpload" accept=".md,.txt,.markdown" style="display:none;" onchange="handleFileUpload(this)">
-    <input type="file" id="imgUpload" accept="image/*" style="display:none;" onchange="handleImageUpload(this)">
+  <form method="POST" id="postForm"
+        action="<%= isEdit ? '/admin/posts/edit/' + encodeURIComponent(post.slug) : '/admin/posts/new' %>"
+        data-slug="<%= currentSlug %>"
+        data-edit="<%= isEdit ? '1' : '0' %>"
+        autocomplete="off">
 
-    <div class="form-row">
-      <div class="form-group">
-        <label>标题 *</label>
-        <input type="text" name="title" id="formTitle" class="form-input" value="<%= isEdit ? post.title : '' %>" required placeholder="文章标题">
+    <div class="card meta-card">
+      <div class="meta-grid">
+        <div class="form-group meta-col-title">
+          <label for="fieldTitle">标题 <span class="req">*</span></label>
+          <input type="text" name="title" id="fieldTitle" class="form-input" required maxlength="200"
+                 value="<%= formTitle %>" placeholder="给文章起个标题">
+        </div>
+        <div class="form-group meta-col-date">
+          <label for="fieldDate">日期</label>
+          <input type="date" name="date" id="fieldDate" class="form-input" value="<%= formDate %>">
+        </div>
+        <div class="form-group meta-col-time">
+          <label for="fieldTime">时间</label>
+          <input type="time" name="time" id="fieldTime" class="form-input" value="<%= formTime %>">
+        </div>
       </div>
-      <div class="form-group" style="max-width:130px;">
-        <label>日期</label>
-        <input type="date" name="date" id="formDate" class="form-input" value="<%= formDate %>">
+
+      <div class="meta-grid">
+        <div class="form-group">
+          <label for="fieldCategory">分类</label>
+          <input type="text" name="category" id="fieldCategory" class="form-input" list="cat-list"
+                 value="<%= formCategory %>" placeholder="如：开发技术">
+          <datalist id="cat-list">
+            <% if (typeof categories !== 'undefined') { %>
+              <% categories.forEach(function(c) { %><option value="<%= c.name %>"></option><% }) %>
+            <% } %>
+          </datalist>
+        </div>
+        <div class="form-group">
+          <label for="fieldTags">标签 <span class="hint-inline">用逗号分隔</span></label>
+          <input type="text" name="tags" id="fieldTags" class="form-input"
+                 value="<%= formTags %>" placeholder="如：Node.js, 教程">
+        </div>
+        <div class="form-group">
+          <label for="fieldSlug">文章地址 <span class="hint-inline">slug</span></label>
+          <input type="text" name="slug" id="fieldSlug" class="form-input mono"
+                 value="<%= formSlug %>" placeholder="留空则根据标题自动生成">
+        </div>
       </div>
-      <div class="form-group" style="max-width:100px;">
-        <label>时间</label>
-        <input type="time" name="time" id="formTime" class="form-input" value="<%= formTime %>">
+
+      <div class="meta-grid">
+        <div class="form-group">
+          <label for="fieldSummary">简述 <span class="hint-inline">首页卡片显示</span></label>
+          <input type="text" name="summary" id="fieldSummary" class="form-input" maxlength="300"
+                 value="<%= formSummary %>" placeholder="留空则自动截取正文前 200 字">
+        </div>
+        <div class="form-group">
+          <label for="fieldExcerpt">摘要 <span class="hint-inline">文章标题下方显示</span></label>
+          <input type="text" name="excerpt" id="fieldExcerpt" class="form-input" maxlength="500"
+                 value="<%= formExcerpt %>" placeholder="可选，文章的引导语">
+        </div>
       </div>
     </div>
 
-    <div class="form-row">
-      <div class="form-group">
-        <label>分类</label>
-        <input type="text" name="category" id="formCategory" class="form-input" value="<%= isEdit ? (post.category || '') : '' %>" placeholder="如：开发技术" list="cat-list">
-        <datalist id="cat-list">
-          <% if (typeof categories !== 'undefined') { %>
-            <% categories.forEach(function(c) { %><option value="<%= c.name %>"><% }) %>
-          <% } %>
-        </datalist>
+    <div class="editor-toolbar-card">
+      <div class="md-toolbar" id="mdToolbar" role="toolbar" aria-label="Markdown 工具栏">
+        <div class="tb-group">
+          <button type="button" class="tb-btn" data-md="h1" title="一级标题">H1</button>
+          <button type="button" class="tb-btn" data-md="h2" title="二级标题">H2</button>
+          <button type="button" class="tb-btn" data-md="h3" title="三级标题">H3</button>
+          <button type="button" class="tb-btn tb-text" data-md="toc" title="插入目录 [TOC]">目录</button>
+        </div>
+        <div class="tb-group">
+          <button type="button" class="tb-btn tb-bold" data-md="bold" title="加粗 (Ctrl+B)">B</button>
+          <button type="button" class="tb-btn tb-italic" data-md="italic" title="斜体 (Ctrl+I)">I</button>
+          <button type="button" class="tb-btn tb-strike" data-md="strike" title="删除线">S</button>
+          <button type="button" class="tb-btn tb-mono" data-md="code" title="行内代码">&lt;/&gt;</button>
+          <button type="button" class="tb-btn tb-mono" data-md="codeblock" title="代码块">{ }</button>
+        </div>
+        <div class="tb-group">
+          <button type="button" class="tb-btn" data-md="quote" title="引用">“ ”</button>
+          <button type="button" class="tb-btn" data-md="ul" title="无序列表">•</button>
+          <button type="button" class="tb-btn" data-md="ol" title="有序列表">1.</button>
+          <button type="button" class="tb-btn" data-md="hr" title="分割线">—</button>
+        </div>
+        <div class="tb-group">
+          <button type="button" class="tb-btn tb-text" data-md="link" title="链接 (Ctrl+K)">链接</button>
+          <button type="button" class="tb-btn tb-text" data-md="image" title="上传图片">图片</button>
+          <button type="button" class="tb-btn tb-text" data-md="table" title="表格">表格</button>
+        </div>
+        <div class="tb-group tb-right">
+          <span class="tb-view" id="tbView">
+            <button type="button" class="tb-btn tb-view-btn" data-view="edit" title="仅编辑">编辑</button>
+            <button type="button" class="tb-btn tb-view-btn" data-view="split" title="分屏">分屏</button>
+            <button type="button" class="tb-btn tb-view-btn" data-view="preview" title="仅预览">预览</button>
+          </span>
+        </div>
       </div>
-      <div class="form-group">
-        <label>标签（逗号分隔）</label>
-        <input type="text" name="tags" id="formTags" class="form-input" value="<%= formTags %>" placeholder="如：AI, Agent, 编程">
+
+      <div class="editor-work" id="editorWork" data-view="split">
+        <section class="editor-pane">
+          <div class="pane-head">
+            <span><i class="fa fa-pen-nib"></i> Markdown</span>
+            <span class="pane-hint">Tab 缩进 · Ctrl+S 保存 · 可粘贴整篇 MD 自动识别</span>
+          </div>
+          <textarea name="body" id="formBody" class="md-input" spellcheck="false"
+                    placeholder="在这里撰写 Markdown 正文…&#10;&#10;支持标题、列表、表格、代码块、图片等常用语法。"><%= formBody %></textarea>
+        </section>
+        <section class="preview-pane">
+          <div class="pane-head">
+            <span><i class="fa fa-eye"></i> 实时预览</span>
+            <span class="pane-hint" id="previewStatus"></span>
+          </div>
+          <iframe id="previewFrame" class="preview-frame" title="文章预览" sandbox="allow-same-origin"></iframe>
+        </section>
+      </div>
+
+      <div class="editor-statusbar">
+        <span id="statWords">0 字</span>
+        <span class="dot">·</span>
+        <span id="statChars">0 字符</span>
+        <span class="dot">·</span>
+        <span id="statLines">0 行</span>
+        <span class="dot">·</span>
+        <span id="statRead">约 1 分钟</span>
+        <span class="status-right" id="draftStatus">未修改</span>
       </div>
     </div>
 
-    <div class="form-group">
-    <div class="form-group">
-      <label>简述（首页展示） <span class="form-hint" style="display:inline;">— 显示在首页卡片中</span></label>
-      <input type="text" name="summary" id="formSummary" class="form-input" value="<%= isEdit ? (post.summary || '') : '' %>" placeholder="留空则自动取正文前200字">
+    <div class="editor-actions">
+      <button type="submit" class="btn btn-primary" id="btnSave">
+        <i class="fa fa-paper-plane"></i> <%= isEdit ? '保存修改' : '发布文章' %>
+      </button>
+      <button type="button" class="btn btn-outline" data-action="preview"><i class="fa fa-eye"></i> 预览</button>
+      <button type="button" class="btn btn-outline" data-action="export"><i class="fa fa-download"></i> 导出 .md</button>
+      <button type="button" class="btn btn-outline" data-action="copy"><i class="fa fa-clipboard"></i> 复制 Markdown</button>
+      <button type="button" class="btn btn-outline" data-action="import"><i class="fa fa-file-import"></i> 导入 .md</button>
+      <button type="button" class="btn btn-outline" data-action="draft"><i class="fa fa-save"></i> 保存本地草稿</button>
+      <a href="/admin/posts" class="btn btn-outline" id="btnCancel">取消</a>
+      <span class="slug-display">地址：<code id="slugDisplay"><%= formSlug || '自动生成' %></code></span>
     </div>
 
-    <div class="form-group">
-      <label>摘要（文章顶部） <span class="form-hint" style="display:inline;">— 显示在文章页标题下方</span></label>
-      <input type="text" name="excerpt" id="formExcerpt" class="form-input" value="<%= isEdit ? (post.excerpt || '') : '' %>" placeholder="可选，文章的引导语或摘要">
-    </div>
-
-    <div class="form-group">
-      <label>正文（Markdown 格式）</label>
-      <textarea name="body" id="formBody" class="form-textarea" rows="20" placeholder="使用 Markdown 格式编写文章..."><%= isEdit ? post.body : '' %></textarea>
-    </div>
-
-    <div style="display:flex;align-items:center;gap:12px;padding-top:12px;border-top:1px solid #eee;">
-      <button type="submit" class="btn btn-primary"><i class="fa fa-paper-plane"></i> <%= isEdit ? '保存修改' : '发布文章' %></button>
-      <button type="button" class="btn btn-outline" onclick="previewPost()"><i class="fa fa-eye"></i> 预览</button>
-      <a href="/admin/posts" class="btn btn-outline">取消</a>
-      <% if (isEdit) { %>
-        <span style="margin-left:auto;font-size:0.82em;color:#999;">slug: <%= post.slug %></span>
-      <% } %>
-    </div>
+    <input type="file" id="mdFileInput" accept=".md,.markdown,.txt" hidden>
+    <input type="file" id="imgFileInput" accept="image/png,image/jpeg,image/gif,image/webp" hidden>
   </form>
 </div>
 
-<!-- Preview Modal -->
-<div class="preview-overlay" id="previewOverlay" onclick="if(event.target===this)closePreview()">
-  <div class="preview-modal">
-    <div class="preview-header">
-      <h3>文章预览</h3>
-      <button class="preview-close" onclick="closePreview()">&times;</button>
-    </div>
-    <div class="preview-body" id="previewBody">
-      <div class="preview-loading">加载预览中...</div>
-    </div>
-  </div>
-</div>
+<div class="toast-host" id="toastHost"></div>
 
 <style>
-.preview-overlay {
-  display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.6); z-index: 9999; justify-content: center; align-items: flex-start;
-  padding: 40px 20px; overflow-y: auto;
-}
-.preview-overlay.active { display: flex; }
-.preview-modal {
-  background: #fff; border-radius: 10px; width: 100%; max-width: 800px;
-  box-shadow: 0 12px 48px rgba(0,0,0,0.2); overflow: hidden;
-}
-.preview-header {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 16px 24px; border-bottom: 1px solid #eee; background: #fafafa;
-}
-.preview-header h3 { margin: 0; font-size: 1.1em; }
-.preview-close {
-  background: none; border: none; font-size: 1.6em; cursor: pointer;
-  color: #999; line-height: 1; padding: 0 4px;
-}
-.preview-close:hover { color: #333; }
-.preview-body {
-  padding: 30px;
-  font-family: Lato, "PingFang SC", "Microsoft YaHei", sans-serif;
-  line-height: 2; color: #333;
-}
-.preview-body h1 { font-size: 1.6em; margin: 20px 0 15px; }
-.preview-body h2 { font-size: 1.4em; margin: 20px 0 15px; }
-.preview-body h3 { font-size: 1.2em; }
-.preview-body p { margin: 0 0 18px; }
-.preview-body pre { background: #f7f7f7; border: 1px solid #e5e5e5; border-radius: 4px; padding: 15px; overflow: auto; line-height: 1.6; }
-.preview-body code { background: #f5f5f5; border-radius: 3px; padding: 2px 5px; color: #c7254e; font-size: 0.9em; }
-.preview-body pre code { background: none; color: #333; padding: 0; }
-.preview-body blockquote { border-left: 4px solid #ddd; color: #666; padding: 0 15px; margin: 0 0 18px; }
-.preview-body img { max-width: 100%; }
-.preview-body table { border-collapse: collapse; width: 100%; margin-bottom: 18px; }
-.preview-body th, .preview-body td { border: 1px solid #ddd; padding: 8px 12px; }
-.preview-body th { background: #f5f5f5; }
-.preview-loading { text-align: center; color: #999; padding: 40px; }
-.preview-title-display { font-size: 1.8em; font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
-.preview-meta-display { color: #999; font-size: 0.85em; margin-bottom: 25px; }
+  .editor-shell { position: relative; }
+  .editor-shell .card { padding: 18px 20px; }
+
+  .meta-card { margin-bottom: 14px; }
+  .meta-grid { display: flex; gap: 14px; margin-bottom: 4px; }
+  .meta-grid .form-group { flex: 1; margin-bottom: 12px; min-width: 0; }
+  .meta-col-title { flex: 3 !important; }
+  .meta-col-date { flex: 0 0 150px !important; }
+  .meta-col-time { flex: 0 0 120px !important; }
+  .req { color: #e04040; }
+  .hint-inline { font-size: 0.78em; color: #aaa; font-weight: normal; margin-left: 4px; }
+  .mono { font-family: "Source Code Pro", Consolas, Monaco, monospace; }
+
+  .editor-toolbar-card { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); overflow: hidden; }
+
+  .md-toolbar {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 2px;
+    padding: 6px 8px; background: #fafafa; border-bottom: 1px solid #eee;
+    position: sticky; top: 0; z-index: 20;
+  }
+  .tb-group { display: flex; align-items: center; gap: 2px; padding: 0 6px; border-right: 1px solid #e8e8e8; }
+  .tb-group:last-child { border-right: none; }
+  .tb-right { margin-left: auto; border-right: none; }
+  .tb-btn {
+    min-width: 30px; height: 30px; padding: 0 7px; border: 1px solid transparent; border-radius: 4px;
+    background: transparent; color: #555; font-size: 0.82em; font-weight: 600; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; transition: all .12s;
+  }
+  .tb-btn:hover { background: #eef2f7; border-color: #dde5ee; color: #1a1a2e; }
+  .tb-btn:active { background: #e2e9f2; }
+  .tb-bold { font-weight: 800; }
+  .tb-italic { font-style: italic; font-weight: 700; }
+  .tb-strike { text-decoration: line-through; }
+  .tb-mono { font-family: Consolas, Monaco, monospace; font-size: 0.82em; }
+  .tb-text { font-weight: 500; font-size: 0.8em; }
+  .tb-view { display: inline-flex; gap: 2px; background: #f0f2f5; border-radius: 5px; padding: 2px; }
+  .tb-view-btn { height: 26px; min-width: 44px; font-weight: 500; color: #777; }
+  .tb-view-btn.active { background: #fff; color: #1a1a2e; box-shadow: 0 1px 2px rgba(0,0,0,0.12); }
+
+  .editor-work {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    height: min(62vh, 680px); min-height: 380px; background: #fff;
+  }
+  .editor-work[data-view="edit"] { grid-template-columns: minmax(0, 1fr); }
+  .editor-work[data-view="preview"] { grid-template-columns: minmax(0, 1fr); }
+  .editor-work[data-view="edit"] .preview-pane { display: none; }
+  .editor-work[data-view="preview"] .editor-pane { display: none; }
+
+  .editor-pane, .preview-pane { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+  .editor-pane { border-right: 1px solid #eee; }
+  .pane-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 14px; font-size: 0.78em; color: #999; background: #fcfcfc;
+    border-bottom: 1px solid #f0f0f0; flex-shrink: 0;
+  }
+  .pane-hint { color: #b5b5b5; }
+
+  .md-input {
+    flex: 1; width: 100%; border: none; outline: none; resize: none;
+    padding: 16px 18px; font-family: "Source Code Pro", Consolas, Monaco, "Courier New", monospace;
+    font-size: 14px; line-height: 1.75; color: #2c3e50; background: #fff;
+    tab-size: 2; white-space: pre-wrap; overflow-wrap: break-word;
+  }
+  .md-input.drag-over { background: #f2f8ff; box-shadow: inset 0 0 0 2px #4fc3f7; }
+  .preview-frame { flex: 1; width: 100%; height: 100%; border: none; background: #fff; display: block; }
+
+  .preview-body {
+    flex: 1; overflow-y: auto; padding: 20px 26px;
+    font-family: Lato, "PingFang SC", "Microsoft YaHei", sans-serif;
+    line-height: 1.85; color: #333; font-size: 15px;
+  }
+  .preview-body h1 { font-size: 1.6em; margin: 22px 0 14px; padding-bottom: 6px; border-bottom: 1px solid #eee; }
+  .preview-body h2 { font-size: 1.35em; margin: 20px 0 12px; }
+  .preview-body h3 { font-size: 1.15em; margin: 18px 0 10px; }
+  .preview-body h4 { font-size: 1.02em; margin: 16px 0 8px; }
+  .preview-body p { margin: 0 0 16px; }
+  .preview-body ul, .preview-body ol { margin: 0 0 16px; padding-left: 26px; }
+  .preview-body li { margin-bottom: 6px; }
+  .preview-body blockquote { border-left: 4px solid #d8d8d8; color: #666; padding: 2px 0 2px 16px; margin: 0 0 16px; background: #fafafa; }
+  .preview-body a { color: #0366d6; }
+  .preview-body img { max-width: 100%; border-radius: 4px; }
+  .preview-body code { background: #f3f4f6; border-radius: 3px; padding: 2px 5px; color: #c7254e; font-size: 0.9em; }
+  .preview-body table { border-collapse: collapse; width: 100%; margin: 0 0 16px; }
+  .preview-body .table-wrap { overflow-x: auto; margin: 0 0 16px; }
+  .preview-body .table-wrap table { margin: 0; }
+  .preview-body th, .preview-body td { border: 1px solid #e3e3e3; padding: 8px 12px; }
+  .preview-body th { background: #f7f7f7; }
+  .preview-body hr { border: none; border-top: 1px solid #eee; margin: 22px 0; }
+
+  .preview-body figure.highlight { margin: 0 0 16px; background: #f7f7f7; border: 1px solid #e5e5e5; border-radius: 5px; overflow: auto; }
+  .preview-body figure.highlight table { border: none; margin: 0; width: auto; }
+  .preview-body figure.highlight td { border: none; padding: 0; }
+  .preview-body figure.highlight .gutter { padding: 10px 8px 10px 12px; background: #eee; color: #aaa; user-select: none; text-align: right; }
+  .preview-body figure.highlight .code { padding: 10px 12px; }
+  .preview-body figure.highlight pre { margin: 0; padding: 0; border: none; background: none; line-height: 1.6; }
+  .preview-body figure.highlight pre code { background: none; color: #333; padding: 0; }
+  .preview-body .highlight-header { display: flex; align-items: center; gap: 10px; padding: 7px 12px; background: #efefef; border-bottom: 1px solid #e2e2e2; font-size: 0.78em; color: #888; }
+  .preview-body .mac-dots { display: flex; gap: 5px; }
+  .preview-body .mac-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .preview-body .mac-dot.red { background: #ff5f56; }
+  .preview-body .mac-dot.yellow { background: #ffbd2e; }
+  .preview-body .mac-dot.green { background: #27c93f; }
+  .preview-body .highlight-lang { margin-left: auto; text-transform: uppercase; letter-spacing: .5px; }
+  .preview-body .copy-btn { border: none; background: none; color: #999; cursor: pointer; padding: 2px 4px; }
+
+  .preview-placeholder { color: #bbb; text-align: center; padding: 60px 20px; }
+  .preview-title { font-size: 1.7em; font-weight: 700; margin-bottom: 8px; line-height: 1.35; }
+  .preview-meta { color: #999; font-size: 0.82em; margin-bottom: 22px; padding-bottom: 14px; border-bottom: 1px solid #eee; display: flex; gap: 14px; flex-wrap: wrap; }
+  .preview-meta i { margin-right: 4px; }
+
+  .editor-statusbar {
+    display: flex; align-items: center; gap: 8px; padding: 7px 14px;
+    border-top: 1px solid #f0f0f0; background: #fcfcfc; font-size: 0.78em; color: #999;
+  }
+  .editor-statusbar .dot { color: #ddd; }
+  .status-right { margin-left: auto; color: #999; }
+  .status-right.saving { color: #4fc3f7; }
+  .status-right.error { color: #e04040; }
+
+  .editor-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 16px 4px 4px; }
+  .slug-display { margin-left: auto; font-size: 0.8em; color: #999; }
+  .slug-display code { background: #f2f3f5; border-radius: 3px; padding: 2px 6px; color: #666; }
+
+  .draft-banner {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    background: #fff8e1; border: 1px solid #ffe082; color: #8d6e00;
+    border-radius: 6px; padding: 10px 14px; margin-bottom: 14px; font-size: 0.86em;
+  }
+  .draft-banner[hidden] { display: none; }
+  .draft-banner-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+  .toast-host { position: fixed; right: 24px; bottom: 24px; z-index: 10000; display: flex; flex-direction: column; gap: 8px; }
+  .editor-toast {
+    background: #1f2937; color: #fff; padding: 10px 16px; border-radius: 6px;
+    font-size: 0.86em; box-shadow: 0 6px 20px rgba(0,0,0,0.22); opacity: 1;
+    transition: opacity .25s, transform .25s; max-width: 320px;
+  }
+  .editor-toast.error { background: #c0392b; }
+  .editor-toast.out { opacity: 0; transform: translateY(6px); }
+
+  @media (max-width: 900px) {
+    .meta-grid { flex-direction: column; gap: 0; }
+    .meta-col-date, .meta-col-time { flex: 1 !important; }
+    .editor-work { grid-template-columns: minmax(0, 1fr); height: auto; }
+    .editor-work .editor-pane { min-height: 55vh; }
+    .editor-work .preview-pane { min-height: 55vh; border-top: 1px solid #eee; }
+    .editor-work[data-view="split"] .preview-pane { display: none; }
+    .editor-work[data-view="edit"] .editor-pane,
+    .editor-work[data-view="preview"] .preview-pane { display: flex; }
+    .editor-actions .slug-display { margin-left: 0; width: 100%; }
+    .md-toolbar { flex-wrap: wrap; }
+    .tb-group { border-right: none; padding: 2px 4px; }
+    .tb-right { margin-left: 0; width: 100%; justify-content: flex-end; border-top: 1px solid #f0f0f0; padding-top: 5px; }
+    .pane-hint { display: none; }
+  }
 </style>
 
 <script>
-// File upload — parse markdown frontmatter and fill form
-function handleFileUpload(input) {
-  var file = input.files[0];
-  if (!file) return;
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    var content = e.target.result;
-    var fmMatch = content.match(/^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/);
-    if (fmMatch) {
-      var fmText = fmMatch[1];
-      var body = fmMatch[2].trim();
-      var meta = {};
-      fmText.split('\n').forEach(function(line) {
-        var idx = line.indexOf(':');
-        if (idx === -1) return;
-        var key = line.slice(0, idx).trim();
-        var val = line.slice(idx + 1).trim();
-        if (val.startsWith('[') && val.endsWith(']')) {
-          val = val.slice(1, -1).split(',').map(function(s){return s.trim();}).join(', ');
-        }
-        meta[key] = val;
-      });
-      if (meta.title) document.getElementById('formTitle').value = meta.title;
-      if (meta.date) document.getElementById('formDate').value = meta.date;
-      if (meta.time) document.getElementById('formTime').value = meta.time;
-      if (meta.category) document.getElementById('formCategory').value = meta.category;
-      if (meta.tags) document.getElementById('formTags').value = meta.tags;
-      if (meta.summary) document.getElementById('formSummary').value = meta.summary;
-      if (meta.excerpt) document.getElementById('formExcerpt').value = meta.excerpt;
-      document.getElementById('formBody').value = body;
-    } else {
-      // No frontmatter: try to use filename as title
-      var title = file.name.replace(/\.(md|txt|markdown)$/, '');
-      document.getElementById('formTitle').value = title;
-      document.getElementById('formBody').value = content;
-    }
+(function () {
+  'use strict';
+
+  var form = document.getElementById('postForm');
+  var editor = document.getElementById('formBody');
+  var work = document.getElementById('editorWork');
+  var previewFrame = document.getElementById('previewFrame');
+  var previewStatus = document.getElementById('previewStatus');
+  var draftStatus = document.getElementById('draftStatus');
+  var draftBanner = document.getElementById('draftBanner');
+  var toastHost = document.getElementById('toastHost');
+
+  var fields = {
+    title: document.getElementById('fieldTitle'),
+    date: document.getElementById('fieldDate'),
+    time: document.getElementById('fieldTime'),
+    category: document.getElementById('fieldCategory'),
+    tags: document.getElementById('fieldTags'),
+    slug: document.getElementById('fieldSlug'),
+    summary: document.getElementById('fieldSummary'),
+    excerpt: document.getElementById('fieldExcerpt')
   };
-  reader.readAsText(file);
-  input.value = '';
-}
 
-// Image upload
-function handleImageUpload(input) {
-  var file = input.files[0];
-  if (!file) return;
-  if (file.size > 10 * 1024 * 1024) { alert('图片不能超过 10MB'); return; }
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    var textarea = document.getElementById('formBody');
-    var loading = '[上传中...]';
-    textarea.value += loading;
+  var isEdit = form.dataset.edit === '1';
+  var draftKey = 'slhbond:draft:' + (form.dataset.slug || 'new');
+  var VIEW_KEY = 'slhbond:editorView';
+  var FENCE = String.fromCharCode(96, 96, 96);
+  var TICK = String.fromCharCode(96);
 
-    fetch('/api/upload-image', {
+  var baseline = JSON.stringify(collect());
+  var dirty = false;
+  var submitting = false;
+  var previewTimer = null;
+  var previewSeq = 0;
+  var draftTimer = null;
+  var pendingDraft = null;
+
+  // ── 数据收集 ────────────────────────────────────────────
+
+  function collect() {
+    return {
+      title: fields.title.value,
+      date: fields.date.value,
+      time: fields.time.value,
+      category: fields.category.value,
+      tags: fields.tags.value,
+      slug: fields.slug.value,
+      summary: fields.summary.value,
+      excerpt: fields.excerpt.value,
+      body: editor.value
+    };
+  }
+
+  function apply(data) {
+    if (!data) return;
+    Object.keys(fields).forEach(function (key) {
+      if (Object.prototype.hasOwnProperty.call(data, key)) {
+        fields[key].value = data[key] == null ? '' : data[key];
+      }
+    });
+    if (Object.prototype.hasOwnProperty.call(data, 'body')) {
+      editor.value = data.body == null ? '' : data.body;
+    }
+    refreshDirty();
+    schedulePreview();
+    scheduleDraft();
+    updateStats();
+    updateSlugHint();
+  }
+
+  function refreshDirty() {
+    dirty = JSON.stringify(collect()) !== baseline;
+    if (!dirty) setDraftStatus('未修改');
+  }
+
+  // ── 工具栏插入 ──────────────────────────────────────────
+
+  function dispatchInput() {
+    editor.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  function wrap(before, after, placeholder) {
+    var start = editor.selectionStart;
+    var end = editor.selectionEnd;
+    var value = editor.value;
+    var selected = value.slice(start, end);
+
+    // 选区两侧已经有标记 → 取消标记
+    if (start >= before.length && value.slice(start - before.length, start) === before
+        && value.slice(end, end + after.length) === after) {
+      editor.setRangeText(selected, start - before.length, end + after.length, 'select');
+      editor.focus();
+      dispatchInput();
+      return;
+    }
+
+    // 选区本身包含标记 → 去掉标记
+    if (selected.length >= before.length + after.length
+        && selected.slice(0, before.length) === before
+        && selected.slice(selected.length - after.length) === after) {
+      editor.setRangeText(selected.slice(before.length, selected.length - after.length), start, end, 'select');
+      editor.focus();
+      dispatchInput();
+      return;
+    }
+
+    var inner = selected || placeholder || '';
+    var text = before + inner + after;
+    editor.setRangeText(text, start, end, 'end');
+    if (!selected && inner) {
+      editor.setSelectionRange(start + before.length, start + before.length + inner.length);
+    }
+    editor.focus();
+    dispatchInput();
+  }
+
+  function lineRange() {
+    var value = editor.value;
+    var start = value.lastIndexOf('\n', editor.selectionStart - 1) + 1;
+    var end = value.indexOf('\n', editor.selectionEnd);
+    if (end === -1) end = value.length;
+    return { start: start, end: end };
+  }
+
+  function togglePrefix(prefix) {
+    var range = lineRange();
+    var block = editor.value.slice(range.start, range.end);
+    var lines = block.split('\n');
+    var all = true;
+    for (var i = 0; i < lines.length; i += 1) {
+      if (lines[i].indexOf(prefix) !== 0) { all = false; break; }
+    }
+    var next = lines.map(function (line) {
+      return all ? line.slice(prefix.length) : prefix + line;
+    }).join('\n');
+    editor.setRangeText(next, range.start, range.end, 'select');
+    editor.focus();
+    dispatchInput();
+  }
+
+  function insertBlock(text) {
+    var start = editor.selectionStart;
+    var end = editor.selectionEnd;
+    var value = editor.value;
+    var prefix = '';
+    var suffix = '';
+    if (start > 0 && value[start - 1] !== '\n') prefix = '\n\n';
+    if (end < value.length && value[end] !== '\n') suffix = '\n';
+    editor.setRangeText(prefix + text + suffix, start, end, 'end');
+    editor.focus();
+    dispatchInput();
+  }
+
+  function insertCodeBlock() {
+    var start = editor.selectionStart;
+    var end = editor.selectionEnd;
+    var selected = editor.value.slice(start, end);
+    var block = FENCE + '\n' + (selected || '') + '\n' + FENCE;
+    var value = editor.value;
+    var prefix = start > 0 && value[start - 1] !== '\n' ? '\n\n' : '';
+    var suffix = end < value.length && value[end] !== '\n' ? '\n' : '';
+    editor.setRangeText(prefix + block + suffix, start, end, 'end');
+    if (!selected) {
+      var caret = start + prefix.length + FENCE.length + 1;
+      editor.setSelectionRange(caret, caret);
+    }
+    editor.focus();
+    dispatchInput();
+  }
+
+  function insertTable() {
+    insertBlock('| 列 1 | 列 2 | 列 3 |\n| --- | --- | --- |\n| 内容 | 内容 | 内容 |');
+  }
+
+  function handleToolbar(action) {
+    switch (action) {
+      case 'h1': togglePrefix('# '); break;
+      case 'h2': togglePrefix('## '); break;
+      case 'h3': togglePrefix('### '); break;
+      case 'toc': insertBlock('[TOC]'); break;
+      case 'bold': wrap('**', '**', '粗体文字'); break;
+      case 'italic': wrap('*', '*', '斜体文字'); break;
+      case 'strike': wrap('~~', '~~', '删除线'); break;
+      case 'code': wrap(TICK, TICK, '代码'); break;
+      case 'codeblock': insertCodeBlock(); break;
+      case 'quote': togglePrefix('> '); break;
+      case 'ul': togglePrefix('- '); break;
+      case 'ol': togglePrefix('1. '); break;
+      case 'link': wrap('[', '](https://example.com)', '链接文字'); break;
+      case 'image': document.getElementById('imgFileInput').click(); break;
+      case 'table': insertTable(); break;
+      case 'hr': insertBlock('---'); break;
+      default: break;
+    }
+  }
+
+  // ── 缩进 / 快捷键 ───────────────────────────────────────
+
+  function indentLines(outdent) {
+    var range = lineRange();
+    var lines = editor.value.slice(range.start, range.end).split('\n');
+    var next = lines.map(function (line) {
+      if (outdent) return line.replace(/^ {1,2}/, '');
+      return '  ' + line;
+    }).join('\n');
+    editor.setRangeText(next, range.start, range.end, 'select');
+    editor.focus();
+    dispatchInput();
+  }
+
+  editor.addEventListener('keydown', function (event) {
+    var mod = event.ctrlKey || event.metaKey;
+    var key = (event.key || '').toLowerCase();
+
+    if (event.key === 'Tab') {
+      event.preventDefault();
+      var multi = editor.value.slice(editor.selectionStart, editor.selectionEnd).indexOf('\n') !== -1;
+      if (!multi && !event.shiftKey) {
+        editor.setRangeText('  ', editor.selectionStart, editor.selectionEnd, 'end');
+        dispatchInput();
+      } else {
+        indentLines(event.shiftKey);
+      }
+      return;
+    }
+
+    if (mod && key === 's') {
+      event.preventDefault();
+      if (event.shiftKey) saveDraft(true);
+      else submitForm();
+      return;
+    }
+    if (mod && event.key === 'Enter') {
+      event.preventDefault();
+      submitForm();
+      return;
+    }
+    if (mod && key === 'b') { event.preventDefault(); handleToolbar('bold'); return; }
+    if (mod && key === 'i') { event.preventDefault(); handleToolbar('italic'); return; }
+    if (mod && key === 'k') { event.preventDefault(); handleToolbar('link'); return; }
+  });
+
+  // ── 统计 ────────────────────────────────────────────────
+
+  function updateStats() {
+    var text = editor.value;
+    var chars = text.length;
+    var lines = text ? text.split('\n').length : 0;
+    var cjk = (text.match(/[\u3400-\u9fff]/g) || []).length;
+    var latin = (text.replace(/[\u3400-\u9fff]/g, ' ').match(/[A-Za-z0-9_'-]+/g) || []).length;
+    var words = cjk + latin;
+    var minutes = Math.max(1, Math.ceil(words / 300));
+
+    document.getElementById('statWords').textContent = words + ' 字';
+    document.getElementById('statChars').textContent = chars + ' 字符';
+    document.getElementById('statLines').textContent = lines + ' 行';
+    document.getElementById('statRead').textContent = '约 ' + minutes + ' 分钟';
+  }
+
+  function slugifyClient(text) {
+    var value = String(text || '').toLowerCase().trim();
+    value = value.replace(/[<>:"/\\|?*]/g, ' ');
+    value = value.replace(/[^0-9a-z\u00c0-\uffff\s._-]/g, ' ');
+    value = value.replace(/[\s_]+/g, '-').replace(/\.+/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '');
+    return value.slice(0, 80);
+  }
+
+  function updateSlugHint() {
+    var current = fields.slug.value.trim();
+    var auto = slugifyClient(fields.title.value);
+    document.getElementById('slugDisplay').textContent = current || auto || '自动生成';
+    if (!current) fields.slug.placeholder = auto || '自动生成';
+  }
+
+  // ── 预览 ────────────────────────────────────────────────
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function previewMetaHtml() {
+    var html = '';
+    var title = fields.title.value.trim();
+    if (title) html += '<div class="preview-title">' + escapeHtml(title) + '</div>';
+    var parts = [];
+    if (fields.date.value) parts.push('<span><i class="far fa-calendar"></i>' + escapeHtml(fields.date.value) + '</span>');
+    if (fields.time.value) parts.push('<span><i class="far fa-clock"></i>' + escapeHtml(fields.time.value) + '</span>');
+    if (fields.category.value.trim()) parts.push('<span><i class="far fa-folder"></i>' + escapeHtml(fields.category.value.trim()) + '</span>');
+    if (fields.tags.value.trim()) parts.push('<span><i class="fas fa-tags"></i>' + escapeHtml(fields.tags.value.trim()) + '</span>');
+    if (parts.length) html += '<div class="preview-meta">' + parts.join('') + '</div>';
+    return html;
+  }
+
+  function schedulePreview() {
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(renderPreview, 320);
+  }
+
+  function buildPreviewDocument(meta, html) {
+    // 沙箱 iframe 里内联 onclick 会被浏览器拦截并刷控制台；预览里的复制按钮本来就隐藏
+    html = String(html || '').replace(/\sonclick="copyCode\(this\)"/g, '');
+    var css = '<link rel="stylesheet" href="/css/style.css">'
+      + '<link rel="stylesheet" href="/css/layout.css">';
+    var style = [
+      'html,body{background:transparent!important;margin:0!important;padding:0!important}',
+      'body{padding:22px 26px 40px;font-family:Lato,"PingFang SC","Microsoft YaHei",sans-serif;font-size:15px;line-height:1.85;color:var(--text-color)}',
+      '.post-body{max-width:none}',
+      '.post-body .copy-btn{display:none!important}',
+      '.post-body img{max-width:100%;height:auto}',
+      '.preview-title{font-size:1.7em;font-weight:700;line-height:1.35;margin:0 0 8px}',
+      '.preview-meta{display:flex;gap:14px;flex-wrap:wrap;color:#94a3b8;font-size:.82em;margin:0 0 22px;padding-bottom:14px;border-bottom:1px solid rgba(128,128,128,.22)}',
+      '.preview-meta i{margin-right:4px}',
+      '.preview-empty{color:#94a3b8;text-align:center;padding:50px 20px}'
+    ].join('');
+    return '<!DOCTYPE html><html><head><meta charset="utf-8">'
+      + css + '<style>' + style + '</style></head><body>'
+      + meta
+      + '<div class="post-body">' + (html || '<div class="preview-empty">正文为空</div>') + '</div>'
+      + '</body></html>';
+  }
+
+  function renderPreview() {
+    if (work.dataset.view === 'edit') return;
+    var seq = ++previewSeq;
+    previewStatus.textContent = '更新中…';
+
+    fetch('/api/preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+      body: 'body=' + encodeURIComponent(editor.value)
+    })
+      .then(function (response) {
+        if (response.status === 401) throw new Error('登录已过期，请刷新页面重新登录');
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        return response.text();
+      })
+      .then(function (html) {
+        if (seq !== previewSeq) return;
+        previewFrame.srcdoc = buildPreviewDocument(previewMetaHtml(), html);
+        previewStatus.textContent = '';
+      })
+      .catch(function (error) {
+        if (seq !== previewSeq) return;
+        previewStatus.textContent = '预览失败';
+        previewFrame.srcdoc = buildPreviewDocument(
+          '<div class="preview-title">预览失败</div>',
+          '<p class="preview-empty">' + escapeHtml(error.message) + '</p>'
+        );
+      });
+  }
+
+  function setView(mode) {
+    work.dataset.view = mode;
+    try { localStorage.setItem(VIEW_KEY, mode); } catch (_) {}
+    var buttons = document.querySelectorAll('.tb-view-btn');
+    for (var i = 0; i < buttons.length; i += 1) {
+      buttons[i].classList.toggle('active', buttons[i].dataset.view === mode);
+    }
+    if (mode !== 'edit') renderPreview();
+  }
+
+  // ── 本地草稿 ────────────────────────────────────────────
+
+  function setDraftStatus(text, isError) {
+    draftStatus.textContent = text;
+    draftStatus.classList.toggle('error', !!isError);
+  }
+
+  function toast(message, type) {
+    if (!toastHost) return;
+    var element = document.createElement('div');
+    element.className = 'editor-toast' + (type === 'error' ? ' error' : '');
+    element.textContent = message;
+    toastHost.appendChild(element);
+    setTimeout(function () {
+      element.classList.add('out');
+      setTimeout(function () { element.remove(); }, 300);
+    }, 2600);
+  }
+
+  function saveDraft(manual) {
+    try {
+      if (JSON.stringify(collect()) === baseline) {
+        localStorage.removeItem(draftKey);
+        setDraftStatus('未修改');
+        if (manual) toast('当前内容与已保存版本一致，无需草稿');
+        return;
+      }
+      localStorage.setItem(draftKey, JSON.stringify({
+        v: 1,
+        savedAt: Date.now(),
+        slug: form.dataset.slug || '',
+        data: collect()
+      }));
+      setDraftStatus('草稿已保存 ' + new Date().toLocaleTimeString('zh-CN', { hour12: false }));
+      if (manual) toast('已保存到浏览器本地草稿');
+    } catch (error) {
+      setDraftStatus('草稿保存失败', true);
+      if (manual) toast('本地存储不可用或已满，草稿保存失败', 'error');
+    }
+  }
+
+  function scheduleDraft() {
+    clearTimeout(draftTimer);
+    draftTimer = setTimeout(function () { saveDraft(false); }, 1600);
+  }
+
+  function loadDraft() {
+    var raw = null;
+    try { raw = localStorage.getItem(draftKey); } catch (_) { return; }
+    if (!raw) return;
+
+    var parsed = null;
+    try { parsed = JSON.parse(raw); } catch (_) {
+      try { localStorage.removeItem(draftKey); } catch (e) {}
+      return;
+    }
+    if (!parsed || !parsed.data) {
+      try { localStorage.removeItem(draftKey); } catch (e) {}
+      return;
+    }
+    if (JSON.stringify(parsed.data) === baseline) {
+      try { localStorage.removeItem(draftKey); } catch (e) {}
+      return;
+    }
+
+    pendingDraft = parsed;
+    var time = parsed.savedAt ? new Date(parsed.savedAt).toLocaleString('zh-CN', { hour12: false }) : '未知时间';
+    document.getElementById('draftTime').textContent = time;
+    draftBanner.hidden = false;
+    setDraftStatus('存在未恢复的本地草稿');
+  }
+
+  function hideDraftBanner() {
+    draftBanner.hidden = true;
+    pendingDraft = null;
+  }
+
+  document.getElementById('draftRestore').addEventListener('click', function () {
+    if (!pendingDraft) return;
+    apply(pendingDraft.data);
+    hideDraftBanner();
+    setDraftStatus('已恢复本地草稿');
+    toast('已恢复本地草稿');
+  });
+
+  document.getElementById('draftDiscard').addEventListener('click', function () {
+    if (!confirm('确定丢弃这份本地草稿？')) return;
+    try { localStorage.removeItem(draftKey); } catch (_) {}
+    hideDraftBanner();
+    setDraftStatus('已丢弃本地草稿');
+  });
+
+  // ── 导出 / 导入 / 复制 ──────────────────────────────────
+
+  function submitParams() {
+    var params = new URLSearchParams();
+    var data = collect();
+    Object.keys(data).forEach(function (key) { params.set(key, data[key]); });
+    return params;
+  }
+
+  function exportMarkdown(copyOnly) {
+    fetch('/api/export-md', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+      body: submitParams().toString()
+    })
+      .then(function (response) {
+        if (response.status === 401) throw new Error('登录已过期，请刷新页面');
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        return response.text();
+      })
+      .then(function (text) {
+        if (copyOnly) {
+          copyText(text);
+          toast('标准格式 Markdown 已复制到剪贴板');
+          return;
+        }
+        var filename = (fields.slug.value.trim() || slugifyClient(fields.title.value) || 'untitled') + '.md';
+        var blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
+        var url = URL.createObjectURL(blob);
+        var link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+        toast('已导出标准格式 .md 文件');
+      })
+      .catch(function (error) { toast('导出失败：' + error.message, 'error'); });
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).catch(function () { fallbackCopy(text); });
+    } else {
+      fallbackCopy(text);
+    }
+  }
+
+  function fallbackCopy(text) {
+    var area = document.createElement('textarea');
+    area.value = text;
+    area.style.position = 'fixed';
+    area.style.left = '-9999px';
+    document.body.appendChild(area);
+    area.select();
+    try { document.execCommand('copy'); } catch (_) {}
+    document.body.removeChild(area);
+  }
+
+  function importMarkdownFile(file) {
+    var reader = new FileReader();
+    reader.onload = function () {
+      fetch('/api/parse-md', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: String(reader.result || '') })
+      })
+        .then(function (response) {
+          if (response.status === 401) throw new Error('登录已过期，请刷新页面');
+          return response.json().then(function (data) {
+            if (!response.ok) throw new Error(data.error || 'HTTP ' + response.status);
+            return data;
+          });
+        })
+        .then(function (result) {
+          var hasContent = editor.value.trim() || fields.title.value.trim();
+          if (hasContent && !confirm('导入会覆盖当前编辑内容，确定继续？')) return;
+          var fallbackTitle = file.name.replace(/\.(md|markdown|txt)$/i, '');
+          apply({
+            title: result.meta.title || fallbackTitle,
+            date: result.meta.date || '',
+            time: result.meta.time || '',
+            category: result.meta.category || '',
+            tags: (result.meta.tags || []).join(', '),
+            slug: fields.slug.value,
+            summary: result.meta.summary || '',
+            excerpt: result.meta.excerpt || '',
+            body: result.body || ''
+          });
+          toast('已导入：' + file.name + (result.hasFrontmatter ? '' : '（未检测到 frontmatter，已用文件名作为标题）'));
+        })
+        .catch(function (error) { toast('导入失败：' + error.message, 'error'); });
+    };
+    reader.readAsText(file, 'utf-8');
+  }
+
+  // ── 整篇 Markdown 文本识别（任意输入框粘贴）────────────
+
+  function looksLikeMarkdownDoc(text) {
+    return /^\uFEFF?---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/.test(String(text || ''));
+  }
+
+  function importMarkdownText(text, label) {
+    fetch('/api/parse-md', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ data: e.target.result, name: file.name })
+      body: JSON.stringify({ text: String(text || '') })
     })
-      .then(function(r) { return r.json(); })
-      .then(function(result) {
-        var mdImg = '![' + (file.name || 'image') + '](' + result.url + ')';
-        textarea.value = textarea.value.replace(loading, mdImg);
+      .then(function (response) {
+        if (response.status === 401) throw new Error('登录已过期，请刷新页面');
+        return response.json().then(function (data) {
+          if (!response.ok) throw new Error(data.error || ('HTTP ' + response.status));
+          return data;
+        });
       })
-      .catch(function() {
-        textarea.value = textarea.value.replace(loading, '');
-        alert('上传失败');
-      });
-  };
-  reader.readAsDataURL(file);
-  input.value = '';
-}
+      .then(function (result) {
+        var hasContent = editor.value.trim() || fields.title.value.trim();
+        if (hasContent && !confirm('识别到整篇 Markdown，导入会覆盖当前编辑内容，继续？')) return;
+        apply({
+          title: result.meta.title || '',
+          date: result.meta.date || '',
+          time: result.meta.time || '',
+          category: result.meta.category || '',
+          tags: (result.meta.tags || []).join(', '),
+          slug: fields.slug.value,
+          summary: result.meta.summary || '',
+          excerpt: result.meta.excerpt || '',
+          body: result.body || ''
+        });
+        toast('已从' + label + '识别整篇文章');
+      })
+      .catch(function (error) { toast('识别失败：' + error.message, 'error'); });
+  }
 
-// Preview — send markdown to server for rendering
-function previewPost() {
-  var title = document.getElementById('formTitle').value || '未命名';
-  var date = document.getElementById('formDate').value;
-  var category = document.getElementById('formCategory').value;
-  var body = document.getElementById('formBody').value;
+  // 任意输入框粘贴完整 Markdown（带 frontmatter）时自动识别
+  form.addEventListener('paste', function (event) {
+    var text = '';
+    try {
+      text = (event.clipboardData || window.clipboardData).getData('text');
+    } catch (e) { return; }
+    if (!looksLikeMarkdownDoc(text)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    importMarkdownText(text, '剪贴板');
+  }, true);
 
-  var overlay = document.getElementById('previewOverlay');
-  var previewBody = document.getElementById('previewBody');
-  overlay.classList.add('active');
-  previewBody.innerHTML = '<div class="preview-loading">加载预览中...</div>';
-  document.body.style.overflow = 'hidden';
+  // 整篇 Markdown 拖到表单任意位置也能识别
+  form.addEventListener('dragover', function (event) { event.preventDefault(); });
+  form.addEventListener('drop', function (event) {
+    if (event.target.closest && event.target.closest('#formBody')) return;
+    var files = event.dataTransfer && event.dataTransfer.files;
+    if (!files || !files.length) return;
+    event.preventDefault();
+    for (var i = 0; i < files.length; i += 1) {
+      if (/^image\//.test(files[i].type)) { uploadImage(files[i]); return; }
+      if (/\.(md|markdown|txt)$/i.test(files[i].name)) { importMarkdownFile(files[i]); return; }
+    }
+  });
 
-  fetch('/api/preview', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: 'body=' + encodeURIComponent(body)
-  })
-    .then(function(r) { return r.text(); })
-    .then(function(html) {
-      var metaHtml = '';
-      if (title) metaHtml += '<div class="preview-title-display">' + escapeHtml(title) + '</div>';
-      if (date || category) {
-        metaHtml += '<div class="preview-meta-display">';
-        if (date) metaHtml += '<span><i class="far fa-calendar"></i> ' + date + '</span> ';
-        if (category) metaHtml += '<span><i class="far fa-folder"></i> ' + escapeHtml(category) + '</span>';
-        metaHtml += '</div>';
+  // ── 图片上传 ────────────────────────────────────────────
+
+  function uploadImage(file) {
+    if (!file) return;
+    if (!/^image\//.test(file.type)) { toast('请选择图片文件', 'error'); return; }
+    if (file.size > 10 * 1024 * 1024) { toast('图片不能超过 10MB', 'error'); return; }
+
+    var selection = { start: editor.selectionStart, end: editor.selectionEnd };
+    var reader = new FileReader();
+    reader.onload = function () {
+      setDraftStatus('图片上传中…');
+      fetch('/api/upload-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: reader.result, name: file.name })
+      })
+        .then(function (response) {
+          if (response.status === 401) throw new Error('登录已过期，请刷新页面');
+          return response.json().then(function (data) {
+            if (!response.ok) throw new Error(data.error || 'HTTP ' + response.status);
+            return data;
+          });
+        })
+        .then(function (result) {
+          var alt = file.name.replace(/\.[^.]+$/, '').replace(/[\[\]\n\r]/g, ' ').trim() || '图片';
+          var snippet = '![' + alt + '](' + result.url + ')';
+          editor.setRangeText(snippet, selection.start, selection.end, 'end');
+          editor.focus();
+          dispatchInput();
+          setDraftStatus('图片已插入');
+          toast('图片已上传并插入');
+        })
+        .catch(function (error) {
+          setDraftStatus('图片上传失败', true);
+          toast('上传失败：' + error.message, 'error');
+        });
+    };
+    reader.readAsDataURL(file);
+  }
+
+  editor.addEventListener('paste', function (event) {
+    var items = event.clipboardData && event.clipboardData.items;
+    if (!items) return;
+    for (var i = 0; i < items.length; i += 1) {
+      if (items[i].type && items[i].type.indexOf('image/') === 0) {
+        event.preventDefault();
+        var file = items[i].getAsFile();
+        if (file) uploadImage(file);
+        return;
       }
-      previewBody.innerHTML = metaHtml + html;
-    })
-    .catch(function() {
-      previewBody.innerHTML = '<div class="preview-loading" style="color:#c33;">预览加载失败</div>';
+    }
+  });
+
+  ['dragenter', 'dragover'].forEach(function (name) {
+    editor.addEventListener(name, function (event) {
+      event.preventDefault();
+      editor.classList.add('drag-over');
     });
-}
+  });
+  ['dragleave', 'drop'].forEach(function (name) {
+    editor.addEventListener(name, function (event) {
+      event.preventDefault();
+      editor.classList.remove('drag-over');
+    });
+  });
+  editor.addEventListener('drop', function (event) {
+    var files = event.dataTransfer && event.dataTransfer.files;
+    if (!files || !files.length) return;
+    for (var i = 0; i < files.length; i += 1) {
+      var file = files[i];
+      if (/^image\//.test(file.type)) { uploadImage(file); return; }
+      if (/\.(md|markdown|txt)$/i.test(file.name)) { importMarkdownFile(file); return; }
+    }
+  });
 
-function closePreview() {
-  document.getElementById('previewOverlay').classList.remove('active');
-  document.body.style.overflow = '';
-}
+  // ── 事件绑定 ────────────────────────────────────────────
 
-function escapeHtml(s) {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
+  ['title', 'date', 'time', 'category', 'tags', 'slug', 'summary', 'excerpt'].forEach(function (key) {
+    fields[key].addEventListener('input', function () {
+      refreshDirty();
+      scheduleDraft();
+      if (key === 'title' || key === 'slug') updateSlugHint();
+      if (work.dataset.view !== 'edit') schedulePreview();
+    });
+  });
 
-// ESC to close preview
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') closePreview();
-});
+  editor.addEventListener('input', function () {
+    refreshDirty();
+    scheduleDraft();
+    updateStats();
+    schedulePreview();
+  });
+
+  // 点击工具栏时保持正文选区（否则部分浏览器会丢失选区）
+  document.getElementById('mdToolbar').addEventListener('mousedown', function (event) {
+    if (event.target.closest('button[data-md]')) event.preventDefault();
+  });
+
+  document.getElementById('mdToolbar').addEventListener('click', function (event) {
+    var button = event.target.closest('button');
+    if (!button) return;
+    if (button.dataset.md) {
+      event.preventDefault();
+      handleToolbar(button.dataset.md);
+    } else if (button.dataset.view) {
+      event.preventDefault();
+      setView(button.dataset.view);
+    }
+  });
+
+  document.querySelector('.editor-actions').addEventListener('click', function (event) {
+    var button = event.target.closest('button[data-action]');
+    if (!button) return;
+    event.preventDefault();
+    var action = button.dataset.action;
+    if (action === 'preview') {
+      setView(work.dataset.view === 'preview' ? 'split' : 'preview');
+    } else if (action === 'export') {
+      exportMarkdown(false);
+    } else if (action === 'copy') {
+      exportMarkdown(true);
+    } else if (action === 'import') {
+      document.getElementById('mdFileInput').click();
+    } else if (action === 'draft') {
+      saveDraft(true);
+    }
+  });
+
+  document.getElementById('mdFileInput').addEventListener('change', function () {
+    if (this.files && this.files[0]) importMarkdownFile(this.files[0]);
+    this.value = '';
+  });
+
+  document.getElementById('imgFileInput').addEventListener('change', function () {
+    if (this.files && this.files[0]) uploadImage(this.files[0]);
+    this.value = '';
+  });
+
+  function submitForm() {
+    if (typeof form.requestSubmit === 'function') form.requestSubmit();
+    else form.submit();
+  }
+
+  form.addEventListener('submit', function (event) {
+    if (!fields.title.value.trim()) {
+      event.preventDefault();
+      toast('请先填写文章标题', 'error');
+      fields.title.focus();
+      return;
+    }
+
+    var slug = fields.slug.value.trim();
+    if (slug && /[\s\/\\]/.test(slug)) {
+      event.preventDefault();
+      toast('文章地址（slug）不能包含空格或斜杠', 'error');
+      fields.slug.focus();
+      return;
+    }
+
+    submitting = true;
+    dirty = false;
+    try { localStorage.removeItem(draftKey); } catch (_) {}
+  });
+
+  document.getElementById('btnCancel').addEventListener('click', function (event) {
+    if (dirty && !confirm('当前修改尚未保存，确定离开？')) event.preventDefault();
+  });
+
+  window.addEventListener('beforeunload', function (event) {
+    if (!dirty || submitting) return;
+    event.preventDefault();
+    event.returnValue = '';
+    return '';
+  });
+
+  // ── 初始化 ──────────────────────────────────────────────
+
+  var savedView = null;
+  try { savedView = localStorage.getItem(VIEW_KEY); } catch (_) {}
+  if (!savedView) savedView = window.innerWidth <= 900 ? 'edit' : 'split';
+  setView(savedView);
+
+  updateStats();
+  updateSlugHint();
+  refreshDirty();
+  loadDraft();
+
+  if (work.dataset.view !== 'edit') renderPreview();
+})();
 </script>

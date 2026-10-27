@@ -1,7 +1,7 @@
 <div class="card">
   <div class="card-header">
     <h2>站点设置</h2>
-    <span style="font-size:0.85em;color:#999;">修改站点基本信息和首页头部</span>
+    <span class="muted">标题、首页文字、作者、站点描述与管理密码</span>
   </div>
 
   <% if (typeof success !== 'undefined' && success) { %>
@@ -11,26 +11,64 @@
     <div class="alert alert-error"><%= error %></div>
   <% } %>
 
-  <form method="POST" action="/admin/settings">
+  <form method="POST" action="/admin/settings" autocomplete="off">
     <div class="form-row">
       <div class="form-group">
-        <label>站点标题 *</label>
-        <input type="text" name="title" class="form-input" value="<%= settings.title %>" required>
-        <div class="form-hint">显示在首页顶部的标题</div>
+        <label>站点标题 <span class="req">*</span></label>
+        <input type="text" name="title" class="form-input" value="<%= settings.title %>" required maxlength="80">
+        <div class="form-hint">显示在顶部导航、浏览器标签和页脚</div>
       </div>
       <div class="form-group">
         <label>副标题</label>
-        <input type="text" name="subtitle" class="form-input" value="<%= settings.subtitle %>">
+        <input type="text" name="subtitle" class="form-input" value="<%= settings.subtitle || '' %>" maxlength="120">
         <div class="form-hint">标题下方的描述文字</div>
       </div>
     </div>
 
-    <div class="form-group">
-      <label>管理密码</label>
-      <input type="password" name="adminPassword" class="form-input" value="<%= settings.adminPassword %>">
-      <div class="form-hint">留空则不修改密码</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>首页标题</label>
+        <input type="text" name="homeTitle" class="form-input" value="<%= settings.homeTitle || '' %>" maxlength="80" placeholder="最新文章">
+        <div class="form-hint">显示在首页文章列表上方</div>
+      </div>
+      <div class="form-group">
+        <label>首页副标题</label>
+        <input type="text" name="homeSubtitle" class="form-input" value="<%= settings.homeSubtitle || '' %>" maxlength="120" placeholder="记录折腾、学习与生活">
+        <div class="form-hint">首页标题下方的一句话</div>
+      </div>
     </div>
 
-    <button type="submit" class="btn btn-primary">保存设置</button>
+    <div class="form-group">
+      <label>首页公告（Markdown，留空隐藏）</label>
+      <textarea name="homeNotice" class="form-input" rows="6" maxlength="5000" style="min-height:120px;resize:vertical;line-height:1.7;"><%= settings.homeNotice || '' %></textarea>
+      <div class="form-hint">显示在首页标题下方；支持链接，例如 [完整迁移说明](/migration/)</div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>作者 / 站点署名</label>
+        <input type="text" name="author" class="form-input" value="<%= settings.author || '' %>" maxlength="40">
+        <div class="form-hint">显示在页脚和文章结构化数据中</div>
+      </div>
+      <div class="form-group">
+        <label>站点描述</label>
+        <input type="text" name="description" class="form-input" value="<%= settings.description || '' %>" maxlength="200">
+        <div class="form-hint">用于 SEO description / og:description</div>
+      </div>
+    </div>
+
+    <div class="form-group" style="max-width:420px;">
+      <label>管理密码</label>
+      <input type="password" name="adminPassword" class="form-input" value="" placeholder="留空则不修改" autocomplete="new-password">
+      <div class="form-hint">至少 4 位；修改后其他已登录设备会在服务重启后失效。</div>
+    </div>
+
+    <button type="submit" class="btn btn-primary"><i class="fa fa-save"></i> 保存设置</button>
   </form>
 </div>
+
+<style>
+  .muted { color: #999; font-weight: normal; font-size: 0.85em; }
+  .req { color: #e04040; }
+  .hint { color: #aaa; font-size: 0.9em; font-weight: normal; }
+</style>

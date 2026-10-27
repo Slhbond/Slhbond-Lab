@@ -224,7 +224,7 @@ figure.highlight {
 /* hljs dark theme overrides */
 .hljs-keyword, .hljs-selector-tag, .hljs-literal, .hljs-section, .hljs-link { color: #c678dd; }
 .hljs-string, .hljs-title.class_ { color: #98c379; }
-.hljs-comment, .hljs-quote { color: #5c6370; font-style: italic; }
+.hljs-comment, .hljs-quote { color: #8b949e; font-style: italic; }
 .hljs-number, .hljs-meta, .hljs-built_in, .hljs-type, .hljs-params, .hljs-attr { color: #d19a66; }
 .hljs-attribute, .hljs-symbol, .hljs-bullet, .hljs-addition, .hljs-variable, .hljs-template-variable { color: #e06c75; }
 .hljs-title.function_ { color: #61afef; }
@@ -257,6 +257,12 @@ tbody tr:nth-of-type(odd) { background: #f9f9f9; }
 tbody tr:hover { background: #f5f5f5; }
 th, td { border: 1px solid #ddd; padding: 8px 12px; }
 th { background: #f5f5f5; font-weight: bold; }
+.table-wrap {
+  overflow-x: auto;
+  margin: 0 0 20px;
+  -webkit-overflow-scrolling: touch;
+}
+.table-wrap table { margin: 0; }
 
 hr {
   background-image: repeating-linear-gradient(-45deg, #ddd, #ddd 4px, transparent 4px, transparent 8px);
@@ -794,11 +800,18 @@ hr {
   border-bottom: none !important;
   display: inline-block;
   margin: 0 8px;
+  opacity: var(--tag-opacity, 0.85);
   transition: opacity 0.2s;
 }
-.tag-cloud-link:hover { opacity: 0.7; }
+.tag-cloud-link:hover { opacity: 1; }
 .tag-cloud-link.active {
+  opacity: 1;
   text-decoration: underline;
+}
+.tag-posts-title {
+  font-size: 1.1em;
+  margin-bottom: 15px;
+  color: #555;
 }
 
 /* ── Categories page ────────────────────────────────────── */
@@ -955,6 +968,15 @@ hr {
   }
 }
 
+@media (max-width: 767px) {
+  /* 表格按内容宽度展开，外层横向滚动，表头不逐字换行 */
+  .table-wrap table {
+    width: max-content;
+    min-width: 100%;
+  }
+  .table-wrap th { white-space: nowrap; }
+}
+
 @media (max-width: 480px) {
   .container { padding: 0; }
   .main { padding: 10px; }
@@ -962,68 +984,26 @@ hr {
     padding: 8px 10px;
     font-size: 0.875em;
   }
+
+  /* 窄屏头部：标题尽量单行 */
+  .brand { padding: 0 8px; }
+  .site-title { font-size: 1.15em; }
+  .site-subtitle { font-size: 0.75em; }
+  .site-brand-container { padding: 10px 0; }
+  .search-trigger { padding: 6px; }
+
+  /* 归档：日期独占一行，标题获得完整宽度 */
+  .posts-collapse { padding: 20px 16px; }
+  .archive-day-group { flex-direction: column; padding: 12px 0; }
+  .archive-day-dot { min-width: 0; padding: 0 0 4px 16px; }
+  .archive-day-posts { width: 100%; }
+  .archive-post-row { align-items: flex-start; }
+  .archive-time-small { width: 40px; margin-right: 8px; }
+  .posts-collapse .post-title-link { font-size: 0.9em; }
 }
 
-/* ── Dark mode support ──────────────────────────────────── */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --body-bg-color: #1a1a1a;
-    --content-bg-color: #2a2a2a;
-    --card-bg-color: #333;
-    --text-color: #ddd;
-    --heading-color: #eee;
-    --link-color: #ccc;
-    --link-hover-color: #fff;
-    --blockquote-color: #aaa;
-  }
 
-  .header, .post-block, .sidebar-card, .tag-item, .category-item,
-  .about-page, .error-page, .empty-state, .pagination a,
-  .pagination .page-number {
-    background: #2a2a2a;
-  }
-  .headband { background: #2a2a2a; }
-  .brand, .site-title, .post-title-link { color: #eee; }
-  .site-subtitle { color: #888; }
-  .main-menu a, .menu-item a { color: #aaa; }
-  .toggle-line { background: #aaa; }
-  .logo-line-before i, .logo-line-after i { background: #555; }
-  .site-nav { border-top-color: #333; }
-  .post-tags a { background: #333; color: #aaa; }
-  .post-tags a:hover { background: #444; }
-  pre { background: #1e1e1e; border-color: #333; }
-  pre code { color: #ccc; }
-  code { background: #333; color: #e06c75; }
-  .pagination .current { background: #555; }
-  .footer { color: #777; }
-  .post-meta, .post-meta-item a { color: #888; }
-  .archive-item { border-bottom-color: #333; }
-  .archive-year { border-bottom-color: #333; }
-  .tag-cloud-link:hover { opacity: 0.8; }
-  .site-state { border-top-color: #333; }
-  .site-state-item { border-right-color: #333; }
-  table th, table td { border-color: #444; }
-  tbody tr:nth-of-type(odd) { background: #2e2e2e; }
-  tbody tr:hover { background: #333; }
-  .post-button .btn,
-  .btn {
-    background: #333;
-    border-color: #555;
-    color: #ccc;
-  }
-  .post-button .btn:hover,
-  .btn:hover {
-    background: #555;
-    border-color: #777;
-    color: #fff;
-  }
-  .post-footer, .post-nav, .post-meta { border-top-color: #333; }
 
-  /* Code blocks are always dark — just tune for dark mode */
-  figure.highlight {
-    box-shadow: 0 2px 12px rgba(0,0,0,0.5);
-  }
-}
 
 /* ── Search ─────────────────────────────────────────────── */
 .site-nav-right {
@@ -1032,12 +1012,18 @@ hr {
   padding-left: 10px;
 }
 .search-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
   color: #94a3b8;
   cursor: pointer;
   font-size: 1.1em;
   padding: 6px 10px;
   transition: color 0.2s;
 }
+.search-trigger svg { display: block; }
 .search-trigger:hover { color: #fff; }
 
 .search-popup {
@@ -1084,6 +1070,8 @@ hr {
 }
 .search-input::placeholder { color: #bbb; }
 .search-close {
+  background: none;
+  border: none;
   cursor: pointer;
   font-size: 1.5em;
   color: #999;
@@ -1135,4 +1123,37 @@ hr {
     margin: 20px 10px;
     border-radius: 8px;
   }
+}
+
+/* ── 修复：返回顶部按钮隐藏时不应拦截点击 ─────────────── */
+.back-to-top {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+.back-to-top-arrow {
+  font-size: 1.15em;
+  line-height: 1;
+}
+.copy-label {
+  font-size: 0.9em;
+}
+.back-to-top-on {
+  opacity: 0.6;
+  pointer-events: auto;
+  visibility: visible;
+}
+
+/* ── 搜索结果摘要 ───────────────────────────────────────── */
+.search-result-snippet {
+  color: #777;
+  font-size: 0.82em;
+  line-height: 1.6;
+  margin: 3px 0 5px;
+}
+.search-result-snippet mark {
+  background: #fef08a;
+  color: #000;
+  padding: 0 2px;
+  border-radius: 2px;
 }

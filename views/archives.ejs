@@ -2,12 +2,18 @@
 <%
 title = '归档';
 function fmtDate(dateStr) {
-  var parts = dateStr.split('-');
+  var parts = String(dateStr || '').split('-');
+  if (parts.length < 3) return dateStr || '';
   return parts[1] + '-' + parts[2];
 }
 %>
 
 <div class="archive-page">
+  <div class="page-header">
+    <h1 class="page-title">归档</h1>
+    <p class="page-subtitle">共 <%= totalPosts %> 篇日志</p>
+  </div>
+
   <div class="posts-collapse">
 
     <div class="collection-title">

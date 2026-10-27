@@ -2,8 +2,9 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
-  <meta name="theme-color" content="#222">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#f5f7f9">
   <meta name="description" content="<%= config.description %>">
   <meta property="og:type" content="<%= typeof post !== 'undefined' ? 'article' : 'website' %>">
   <meta property="og:title" content="<%= typeof title !== 'undefined' ? title : config.title %>">
@@ -13,178 +14,129 @@
   <meta property="article:author" content="<%= config.author %>">
   <title><%= typeof title !== 'undefined' ? title + ' | ' + config.title : config.title %></title>
 
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css">
+  <% var assetVer = typeof assetVersion === 'string' ? assetVersion : '1'; %>
+  <link rel="icon" href="/favicon.svg?v=<%= assetVer %>" type="image/svg+xml">
+  <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css?v=<%= assetVer %>">
+  <link rel="stylesheet" href="/css/layout.css?v=<%= assetVer %>">
 </head>
 <body itemscope itemtype="http://schema.org/WebPage">
-  <div class="container">
-    <div class="headband"></div>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="topbar-brand" href="/" rel="start">
+        <span class="topbar-title"><%= config.title %></span>
+        <% if (config.subtitle) { %><span class="topbar-subtitle"><%= config.subtitle %></span><% } %>
+      </a>
 
-    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
-      <div class="header-inner">
-        <div class="site-brand-container">
-          <div class="site-nav-toggle">
-            <div class="toggle" aria-label="切换导航栏" onclick="document.querySelector('.site-nav').classList.toggle('site-nav-on')">
-              <span class="toggle-line toggle-line-first"></span>
-              <span class="toggle-line toggle-line-middle"></span>
-              <span class="toggle-line toggle-line-last"></span>
-            </div>
-          </div>
+      <nav class="topnav" id="topNav" aria-label="站点导航">
+        <ul>
+          <% Object.entries(config.menu).forEach(function(pair) {
+               var item = pair[1];
+               var active = (item.path === '/' && currentPath === '/') || (item.path !== '/' && currentPath.indexOf(item.path) === 0);
+          %>
+            <li><a href="<%= item.path %>" class="<%= active ? 'active' : '' %>"><%= item.label %></a></li>
+          <% }); %>
+        </ul>
+      </nav>
 
-          <div class="site-meta">
-            <a href="/" class="brand" rel="start">
-              <h1 class="site-title"><%= config.title %></h1>
-            </a>
-            <% if (config.subtitle) { %>
-              <p class="site-subtitle"><%= config.subtitle %></p>
-            <% } %>
-          </div>
-
-          <div class="site-nav-right">
-            <div class="search-trigger" onclick="toggleSearch()" title="搜索">
-              <i class="fa fa-search"></i>
-            </div>
-          </div>
-        </div>
-
-        <!-- Search popup -->
-        <div class="search-popup" id="searchPopup">
-          <div class="search-popup-mask" onclick="toggleSearch()"></div>
-          <div class="search-popup-inner">
-            <div class="search-input-wrap">
-              <i class="fa fa-search"></i>
-              <input type="text" id="searchInput" class="search-input" placeholder="搜索文章..." autocomplete="off"
-                     oninput="doSearch(this.value)">
-              <span class="search-close" onclick="toggleSearch()">&times;</span>
-            </div>
-            <div class="search-results" id="searchResults">
-              <div class="search-hint">输入关键词搜索文章标题、标签、内容...</div>
-            </div>
-          </div>
-        </div>
-
-        <nav class="site-nav">
-          <ul class="main-menu menu">
-            <% Object.entries(config.menu).forEach(([key, item]) => { %>
-              <li class="menu-item menu-item-<%= key %>">
-                <a href="<%= item.path %>" rel="section" class="<%= currentPath === item.path ? 'active' : '' %>">
-                  <i class="fa <%= item.icon %> fa-fw"></i><%= item.label %>
-                </a>
-              </li>
-            <% }) %>
-          </ul>
-        </nav>
+      <div class="topbar-actions">
+        <button type="button" class="icon-btn js-search-trigger" aria-label="搜索" title="搜索">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"></circle><line x1="16.5" y1="16.5" x2="21" y2="21"></line>
+          </svg>
+        </button>
+        <button type="button" class="icon-btn nav-toggle" id="navToggle" aria-label="切换导航" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
       </div>
-    </header>
+    </div>
+  </header>
 
-    <main class="main">
-      <div class="main-inner">
-        <div class="content-wrap">
-          <div class="content">
-            <%- body %>
-          </div>
-        </div>
-
-        <!-- Sidebar removed -->
+  <div class="site-shell">
+    <main class="main<%= currentPath === '/' ? ' main-home' : '' %>">
+      <div class="content">
+        <%- body %>
       </div>
     </main>
 
     <footer class="footer">
       <div class="footer-inner">
         <div class="copyright">
-          &copy; 2026-<span itemprop="copyrightYear"><%= new Date().getFullYear() %></span>
-          <span class="author" itemprop="copyrightHolder">slh＆科技小菜</span>
+          &copy; <span itemprop="copyrightYear"><%= new Date().getFullYear() %></span>
+          <span class="author" itemprop="copyrightHolder"><%= config.author %></span>
+          <span class="site-version"><a href="/changelog/">v<%= version %></a></span>
         </div>
         <div class="powered-by">
-          由 <a href="https://nodejs.org/" target="_blank">Node.js</a> & <a href="https://expressjs.com/" target="_blank">Express</a> 驱动
+          由 <a href="https://nodejs.org/" target="_blank" rel="noopener">Node.js</a> &amp; <a href="https://expressjs.com/" target="_blank" rel="noopener">Express</a> 驱动
         </div>
       </div>
     </footer>
   </div>
 
-  <!-- Back to top -->
-  <div class="back-to-top" id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">
-    <i class="fa fa-arrow-up"></i>
-    <span class="scroll-percent">0%</span>
+  <div class="search-popup" id="searchPopup">
+    <div class="search-popup-mask" onclick="toggleSearch()"></div>
+    <div class="search-popup-inner">
+      <div class="search-input-wrap">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"></circle><line x1="16.5" y1="16.5" x2="21" y2="21"></line>
+        </svg>
+        <input type="text" id="searchInput" class="search-input" placeholder="搜索文章..." autocomplete="off" oninput="doSearch(this.value)">
+        <button type="button" class="search-close" onclick="toggleSearch()" aria-label="关闭搜索">&times;</button>
+      </div>
+      <div class="search-results" id="searchResults">
+        <div class="search-hint">输入关键词搜索文章标题、标签、内容...</div>
+      </div>
+    </div>
   </div>
 
+  <% if (typeof post !== 'undefined') { %>
+    <button type="button" class="read-progress" id="readProgress" aria-label="阅读进度，点击回到顶部" title="回到顶部">
+      <span class="read-inner">
+        <span class="read-percent" id="readPercent">0%</span>
+        <span class="read-arrow" aria-hidden="true">↑</span>
+      </span>
+    </button>
+  <% } %>
+
   <script>
-    // Mobile nav toggle
-    document.addEventListener('DOMContentLoaded', function() {
-      // Back to top visibility + scroll percent
-      var btn = document.getElementById('backToTop');
-      var percent = btn.querySelector('.scroll-percent');
-      window.addEventListener('scroll', function() {
-        var h = document.documentElement;
-        var st = h.scrollTop || document.body.scrollTop;
-        var sh = h.scrollHeight - h.clientHeight;
-        var pct = sh > 0 ? Math.round(st / sh * 100) : 0;
-        if (percent) percent.textContent = pct + '%';
-        btn.classList.toggle('back-to-top-on', st > 200);
+    // ── 顶部导航（移动端折叠）────────────────────────────
+    (function () {
+      var toggle = document.getElementById('navToggle');
+      var nav = document.getElementById('topNav');
+      if (!toggle || !nav) return;
+      toggle.addEventListener('click', function () {
+        var open = nav.classList.toggle('open');
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
       });
-    });
+      nav.addEventListener('click', function (event) {
+        if (event.target.closest('a[href]')) {
+          nav.classList.remove('open');
+          toggle.setAttribute('aria-expanded', 'false');
+        }
+      });
+    })();
 
-    // Code copy — textarea fallback for HTTP compatibility
-    function copyCode(btn) {
-      var fig = btn.closest('figure.highlight');
-      var code = fig.querySelector('td.code code');
-      if (!code) return;
-      var lines = code.querySelectorAll('.line');
-      var text = '';
-      lines.forEach(function(l) { text += (l.textContent || l.innerText) + '\n'; });
-
-      // Try clipboard API first (works on HTTPS / localhost)
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(function() {
-          showCopied(btn);
-        }).catch(function() {
-          fallbackCopy(text, btn);
-        });
-      } else {
-        fallbackCopy(text, btn);
-      }
-    }
-
-    function fallbackCopy(text, btn) {
-      var ta = document.createElement('textarea');
-      ta.value = text;
-      ta.style.position = 'fixed';
-      ta.style.left = '-9999px';
-      ta.style.top = '-9999px';
-      ta.style.opacity = '0';
-      document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
-      try {
-        document.execCommand('copy');
-        showCopied(btn);
-      } catch(e) {
-        // Silent fail
-      }
-      document.body.removeChild(ta);
-    }
-
-    function showCopied(btn) {
-      btn.classList.add('copied');
-      btn.innerHTML = '<i class="fa-solid fa-check"></i>';
-      setTimeout(function() {
-        btn.classList.remove('copied');
-        btn.innerHTML = '<i class="fa-regular fa-copy"></i>';
-      }, 1500);
-    }
-
-    // Search
+    // ── 搜索 ──────────────────────────────────────────────
     var searchData = [];
-    var searchLoaded = false;
+    var searchLoading = false;
+
+    function escapeHtml(value) {
+      return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
 
     function loadSearchData() {
-      if (searchLoaded) return;
-      fetch('/search.json')
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-          searchData = data;
-          searchLoaded = true;
-        });
+      if (searchLoading) return Promise.resolve();
+      searchLoading = true;
+      return fetch('/search.json', { cache: 'no-store' })
+        .then(function (r) {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
+        })
+        .then(function (data) { searchData = Array.isArray(data) ? data : []; })
+        .catch(function () { searchData = []; })
+        .then(function () { searchLoading = false; });
     }
 
     function toggleSearch() {
@@ -196,11 +148,41 @@
       } else {
         popup.classList.add('active');
         document.body.style.overflow = 'hidden';
-        loadSearchData();
-        setTimeout(function() {
-          document.getElementById('searchInput').focus();
-        }, 100);
+        document.getElementById('searchResults').innerHTML =
+          '<div class="search-hint">正在加载搜索数据...</div>';
+        loadSearchData().then(function () {
+          var input = document.getElementById('searchInput');
+          if (input.value.trim()) doSearch(input.value);
+          else document.getElementById('searchResults').innerHTML =
+            '<div class="search-hint">输入关键词搜索文章标题、标签、内容...</div>';
+        });
+        setTimeout(function () { document.getElementById('searchInput').focus(); }, 100);
       }
+    }
+
+    function makeSnippet(post, query) {
+      var source = String(post.summary || '') + ' ' + String(post.text || '');
+      var index = source.toLowerCase().indexOf(query);
+      if (index === -1) return '';
+      var start = Math.max(0, index - 36);
+      var end = Math.min(source.length, index + query.length + 64);
+      return (start > 0 ? '…' : '') + source.slice(start, end).trim() + (end < source.length ? '…' : '');
+    }
+
+    function highlightText(text, query) {
+      if (!query) return text;
+      var source = String(text);
+      var lower = source.toLowerCase();
+      var q = query.toLowerCase();
+      var out = '';
+      var from = 0;
+      while (from < source.length) {
+        var found = lower.indexOf(q, from);
+        if (found === -1) { out += source.slice(from); break; }
+        out += source.slice(from, found) + '<mark>' + source.slice(found, found + q.length) + '</mark>';
+        from = found + q.length;
+      }
+      return out;
     }
 
     function doSearch(query) {
@@ -209,29 +191,32 @@
         container.innerHTML = '<div class="search-hint">输入关键词搜索文章标题、标签、内容...</div>';
         return;
       }
-      if (!searchData.length) {
+      if (searchLoading) {
         container.innerHTML = '<div class="search-hint">正在加载搜索数据...</div>';
-        loadSearchData();
         return;
       }
 
       var q = query.toLowerCase().trim();
       var results = [];
-      searchData.forEach(function(post) {
+      searchData.forEach(function (post) {
         var score = 0;
-        var titleMatch = post.title.toLowerCase().indexOf(q);
-        if (titleMatch !== -1) score += 100 - titleMatch;
-        post.tags.forEach(function(tag) {
+        var title = (post.title || '').toLowerCase();
+        var category = (post.category || '').toLowerCase();
+        var summary = (post.summary || '') + ' ' + (post.excerpt || '');
+        var text = (post.text || '').toLowerCase();
+        var titleMatch = title.indexOf(q);
+        if (titleMatch !== -1) score += 100 - Math.min(titleMatch, 40);
+        (post.tags || []).forEach(function (tag) {
           if (tag.toLowerCase().indexOf(q) !== -1) score += 50;
         });
-        if (post.category.toLowerCase().indexOf(q) !== -1) score += 30;
-        var textIdx = post.text.toLowerCase().indexOf(q);
+        if (category.indexOf(q) !== -1) score += 30;
+        var textIdx = text.indexOf(q);
         if (textIdx !== -1) score += 10 - Math.min(textIdx / 100, 5);
-        if (post.summary.toLowerCase().indexOf(q) !== -1) score += 15;
+        if (summary.toLowerCase().indexOf(q) !== -1) score += 15;
         if (score > 0) results.push({ post: post, score: score });
       });
 
-      results.sort(function(a, b) { return b.score - a.score; });
+      results.sort(function (a, b) { return b.score - a.score; });
 
       if (results.length === 0) {
         container.innerHTML = '<div class="search-no-results">没有找到匹配的文章</div>';
@@ -239,31 +224,107 @@
       }
 
       var html = '';
-      results.slice(0, 15).forEach(function(r) {
+      results.slice(0, 15).forEach(function (r) {
         var p = r.post;
-        var title = highlightText(p.title, q);
-        html += '<a href="/post/' + p.slug + '/" class="search-result-item">'
-          + '<div class="search-result-title">' + title + '</div>'
+        var snippet = makeSnippet(p, q);
+        html += '<a href="/post/' + encodeURIComponent(p.slug) + '" class="search-result-item">'
+          + '<div class="search-result-title">' + highlightText(escapeHtml(p.title), q) + '</div>'
+          + (snippet ? '<div class="search-result-snippet">' + highlightText(escapeHtml(snippet), q) + '</div>' : '')
           + '<div class="search-result-meta">'
-          + '<span><i class="far fa-calendar"></i> ' + p.date + '</span>'
-          + (p.category ? '<span><i class="far fa-folder"></i> ' + p.category + '</span>' : '')
-          + '</div>'
-          + '</a>';
+          + '<span><i class="far fa-calendar"></i> ' + escapeHtml(p.date) + '</span>'
+          + (p.category ? '<span><i class="far fa-folder"></i> ' + escapeHtml(p.category) + '</span>' : '')
+          + '</div></a>';
       });
       container.innerHTML = html;
     }
 
-    function highlightText(text, query) {
-      var re = new RegExp('(' + query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
-      return text.replace(re, '<mark>$1</mark>');
-    }
-
-    // ESC to close search
-    document.addEventListener('keydown', function(e) {
+    document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') {
         var popup = document.getElementById('searchPopup');
-        if (popup.classList.contains('active')) toggleSearch();
+        if (popup && popup.classList.contains('active')) toggleSearch();
       }
+    });
+
+    // ── 阅读进度 / 回到顶部 / 右侧目录高亮 ────────────────
+    (function () {
+      var btn = document.getElementById('readProgress');
+      var pctEl = document.getElementById('readPercent');
+      var article = document.querySelector('.post-page');
+      var tocLinks = Array.prototype.slice.call(document.querySelectorAll('.toc-rail a'));
+
+      function onScroll() {
+        var scroll = window.scrollY || document.documentElement.scrollTop;
+        if (btn && article && pctEl) {
+          var top = article.getBoundingClientRect().top + scroll;
+          var range = article.offsetHeight - window.innerHeight + 160;
+          var pct = range > 0 ? Math.round((scroll - top + 120) / range * 100) : 100;
+          pct = Math.max(0, Math.min(100, pct));
+          pctEl.textContent = pct + '%';
+          btn.style.background = 'conic-gradient(#222 ' + pct + '%, #e5e5e5 0)';
+        }
+        if (tocLinks.length) {
+          var active = 0;
+          tocLinks.forEach(function (link, i) {
+            var id = decodeURIComponent((link.getAttribute('href') || '').slice(1));
+            var head = document.getElementById(id);
+            if (!head) return;
+            if (head.getBoundingClientRect().top <= 120) active = i;
+          });
+          tocLinks.forEach(function (link, i) { link.classList.toggle('active', i === active); });
+        }
+      }
+
+      if (btn) {
+        btn.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+      window.addEventListener('scroll', onScroll, { passive: true });
+      onScroll();
+    })();
+
+    // ── 代码复制 ─────────────────────────────────────────
+    function copyCode(btn) {
+      var fig = btn.closest('figure.highlight');
+      var code = fig.querySelector('td.code code');
+      if (!code) return;
+      var lines = code.querySelectorAll('.line');
+      var text = '';
+      lines.forEach(function (l) { text += (l.textContent || l.innerText) + '\n'; });
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () { showCopied(btn); }).catch(function () { fallbackCopy(text, btn); });
+      } else {
+        fallbackCopy(text, btn);
+      }
+    }
+
+    function fallbackCopy(text, btn) {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); showCopied(btn); } catch (e) { /* ignore */ }
+      document.body.removeChild(ta);
+    }
+
+    function showCopied(btn) {
+      var label = btn.querySelector('.copy-label');
+      btn.classList.add('copied');
+      if (label) label.textContent = '已复制';
+      setTimeout(function () {
+        btn.classList.remove('copied');
+        if (label) label.textContent = '复制';
+      }, 1500);
+    }
+
+    document.querySelectorAll('.js-search-trigger').forEach(function (el) {
+      el.addEventListener('click', function (event) {
+        if (el.tagName === 'A') event.preventDefault();
+        toggleSearch();
+      });
     });
   </script>
 </body>

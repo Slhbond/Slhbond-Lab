@@ -1,16 +1,21 @@
 {
   "name": "blog",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Lightweight markdown blog engine — NexT-inspired",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node --test test/frontmatter.test.js"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "dependencies": {
+    "compression": "^1.8.2",
+    "ejs": "^3.1.10",
     "express": "^4.21.0",
     "express-session": "^1.18.0",
-    "ejs": "^3.1.10",
-    "markdown-it": "^14.1.0",
-    "highlight.js": "^11.11.1"
+    "highlight.js": "^11.11.1",
+    "markdown-it": "^14.1.0"
   }
 }

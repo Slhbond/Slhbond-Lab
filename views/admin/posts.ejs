@@ -1,115 +1,195 @@
 <div class="card">
   <div class="card-header">
-    <h2>文章管理 <span style="color:#999;font-weight:normal;font-size:0.85em;">(<%= posts.length %> 篇)</span></h2>
-    <a href="/admin/posts/new" class="btn btn-primary"><i class="fa fa-plus"></i> 新建文章</a>
+    <h2>文章管理 <span class="muted">(<%= posts.length %> 篇)</span></h2>
+    <div class="header-actions">
+      <input type="search" id="postFilter" class="form-input filter-input" placeholder="筛选标题 / 标签 / 分类">
+      <a href="/admin/posts/new" class="btn btn-primary"><i class="fa fa-plus"></i> 新建文章</a>
+    </div>
   </div>
 
-  <% if (typeof success !== 'undefined' && success) { %>
-    <div class="alert alert-success"><%= success %></div>
-  <% } %>
-
   <% if (posts.length > 0) { %>
-    <div style="overflow-x:auto;">
-    <table class="table">
-      <thead>
-        <tr>
-          <th style="width:60px;">排序</th>
-          <th>标题</th>
-          <th style="width:110px;">日期</th>
-          <th style="width:100px;">分类</th>
-          <th>标签</th>
-          <th style="width:100px;">操作</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% posts.forEach(function(p, idx) { %>
+    <div class="table-wrap">
+      <table class="table" id="postTable">
+        <thead>
           <tr>
-            <td style="text-align:center;">
-              <button class="sort-btn" onclick="movePost('<%= p.slug %>', 'up')" <%= idx === 0 ? 'disabled' : '' %> title="上移">&#9650;</button>
-              <button class="sort-btn" onclick="movePost('<%= p.slug %>', 'down')" <%= idx === posts.length - 1 ? 'disabled' : '' %> title="下移">&#9660;</button>
-            </td>
-            <td>
-              <a href="/post/<%= p.slug %>/" target="_blank" style="font-weight:500;"><%= p.title %></a>
-              <% if (p.summary) { %><div style="font-size:0.78em;color:#999;margin-top:2px;"><%= p.summary.substring(0, 60) %>...</div><% } %>
-            </td>
-            <td style="white-space:nowrap;font-size:0.85em;color:#888;">
-              <input type="date" value="<%= p.date ? formatDate(p.date) : '' %>"
-                     onchange="updateDate('<%= p.slug %>', this.value)"
-                     style="border:1px solid #eee;border-radius:3px;padding:3px 6px;font-size:0.85em;width:110px;">
-            </td>
-            <td>
-              <input type="text" value="<%= p.category || '' %>" placeholder="分类"
-                     onchange="updateField('<%= p.slug %>', 'category', this.value)"
-                     style="border:1px solid #eee;border-radius:3px;padding:3px 6px;font-size:0.85em;width:90px;">
-            </td>
-            <td>
-              <% (p.tags || []).forEach(function(t) { %>
-                <span class="tag-badge">
-                  <%= t %>
-                  <a href="javascript:void(0)" onclick="removeTag('<%= p.slug %>', '<%= t %>')"
-                     style="color:#999;margin-left:2px;text-decoration:none;" title="移除标签">&times;</a>
-                </span>
-              <% }) %>
-              <a href="javascript:void(0)" onclick="addTag('<%= p.slug %>')"
-                 style="font-size:0.78em;color:#4fc3f7;text-decoration:none;">+标签</a>
-            </td>
-            <td class="actions">
-              <a href="/admin/posts/edit/<%= p.slug %>" class="btn btn-sm btn-outline">编辑</a>
-              <form method="POST" action="/admin/posts/delete/<%= p.slug %>" style="display:inline;"
-                    onsubmit="return confirm('确定删除「<%= p.title %>」？')">
-                <button type="submit" class="btn btn-sm btn-danger">删除</button>
-              </form>
-            </td>
+            <th style="width:58px;">排序</th>
+            <th>标题</th>
+            <th style="width:128px;">日期</th>
+            <th style="width:120px;">分类</th>
+            <th>标签</th>
+            <th style="width:132px;">操作</th>
           </tr>
-        <% }) %>
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          <% posts.forEach(function(p, idx) { %>
+            <tr data-search="<%= (p.title + ' ' + (p.category || '') + ' ' + (p.tags || []).join(' ')).toLowerCase() %>">
+              <td style="text-align:center;white-space:nowrap;">
+                <button class="sort-btn" data-action="move" data-slug="<%= p.slug %>" data-dir="up"
+                        <%= idx === 0 ? 'disabled' : '' %> title="上移">&#9650;</button>
+                <button class="sort-btn" data-action="move" data-slug="<%= p.slug %>" data-dir="down"
+                        <%= idx === posts.length - 1 ? 'disabled' : '' %> title="下移">&#9660;</button>
+              </td>
+              <td>
+                <a href="/post/<%= encodeURIComponent(p.slug) %>" target="_blank" rel="noopener" class="post-title-link"><%= p.title %></a>
+                <% if (p.summary) { %><div class="post-summary"><%= p.summary.substring(0, 60) %><%= p.summary.length > 60 ? '…' : '' %></div><% } %>
+                <div class="post-slug">/post/<%= p.slug %></div>
+              </td>
+              <td style="white-space:nowrap;">
+                <input type="date" class="inline-input js-field" data-field="date" data-slug="<%= p.slug %>"
+                       value="<%= p.dateStr || '' %>" title="修改日期">
+              </td>
+              <td>
+                <input type="text" class="inline-input js-field" data-field="category" data-slug="<%= p.slug %>"
+                       value="<%= p.category || '' %>" placeholder="未分类" title="修改分类">
+              </td>
+              <td>
+                <% (p.tags || []).forEach(function(t) { %>
+                  <span class="tag-badge">
+                    <%= t %>
+                    <button type="button" class="tag-remove" data-action="remove-tag" data-slug="<%= p.slug %>" data-tag="<%= t %>"
+                            title="移除标签">&times;</button>
+                  </span>
+                <% }) %>
+                <button type="button" class="tag-add" data-action="add-tag" data-slug="<%= p.slug %>">+ 标签</button>
+              </td>
+              <td class="actions">
+                <a href="/admin/posts/edit/<%= encodeURIComponent(p.slug) %>" class="btn btn-sm btn-outline">编辑</a>
+                <form method="POST" action="/admin/posts/delete/<%= encodeURIComponent(p.slug) %>" class="delete-form"
+                      data-confirm="确定删除「<%= p.title %>」？此操作不可撤销。">
+                  <button type="submit" class="btn btn-sm btn-danger">删除</button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+      <div class="filter-empty" id="filterEmpty" hidden>没有匹配的文章</div>
     </div>
   <% } else { %>
-    <div style="text-align:center;padding:40px;color:#999;">
+    <div class="empty-state">
       <p>还没有文章</p>
       <a href="/admin/posts/new" class="btn btn-primary" style="margin-top:12px;">写第一篇</a>
     </div>
   <% } %>
 </div>
 
+<style>
+  .muted { color: #999; font-weight: normal; font-size: 0.85em; }
+  .header-actions { display: flex; align-items: center; gap: 10px; }
+  .filter-input { width: 220px; padding: 6px 12px; font-size: 0.85em; }
+  .table-wrap { overflow-x: auto; }
+  .post-title-link { font-weight: 500; }
+  .post-summary { font-size: 0.78em; color: #999; margin-top: 3px; }
+  .post-slug { font-size: 0.72em; color: #bbb; margin-top: 2px; font-family: Consolas, monospace; }
+  .inline-input {
+    border: 1px solid transparent; border-radius: 3px; padding: 3px 6px;
+    font-size: 0.85em; color: inherit; background: transparent; width: 100%; max-width: 120px;
+  }
+  .inline-input:hover { border-color: #e6e6e6; background: #fff; }
+  .inline-input:focus { border-color: #1a1a2e; background: #fff; outline: none; }
+  .inline-input.saved { background: #e8f5e9; border-color: #a5d6a7; transition: background .4s; }
+  .tag-badge { display: inline-flex; align-items: center; gap: 2px; }
+  .tag-remove { border: none; background: none; color: #999; cursor: pointer; padding: 0 2px; font-size: 1em; line-height: 1; }
+  .tag-remove:hover { color: #e04040; }
+  .tag-add { border: none; background: none; color: #4fc3f7; cursor: pointer; font-size: 0.78em; padding: 2px 4px; }
+  .tag-add:hover { text-decoration: underline; }
+  .delete-form { display: inline; }
+  .filter-empty { text-align: center; color: #999; padding: 24px; }
+  @media (max-width: 900px) { .header-actions { flex-direction: column; align-items: stretch; } .filter-input { width: 100%; } }
+</style>
+
 <script>
-function movePost(slug, dir) {
-  fetch('/admin/posts/move', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-    body: 'slug=' + encodeURIComponent(slug) + '&dir=' + dir
-  }).then(r => { if (r.ok) location.reload(); });
-}
-function updateDate(slug, date) {
-  fetch('/admin/posts/update-field', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-    body: 'slug=' + encodeURIComponent(slug) + '&field=date&value=' + encodeURIComponent(date)
+(function () {
+  'use strict';
+
+  function api(url, payload) {
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+      body: new URLSearchParams(payload).toString()
+    }).then(function (response) {
+      if (response.status === 401) {
+        window.location.href = '/admin/login';
+        throw new Error('登录已过期');
+      }
+      return response.json().then(function (data) {
+        if (!response.ok) throw new Error(data.error || ('HTTP ' + response.status));
+        return data;
+      });
+    });
+  }
+
+  document.addEventListener('click', function (event) {
+    var button = event.target.closest('[data-action]');
+    if (!button) return;
+    var action = button.dataset.action;
+
+    if (action === 'move') {
+      event.preventDefault();
+      api('/admin/posts/move', { slug: button.dataset.slug, dir: button.dataset.dir })
+        .then(function () { window.location.reload(); })
+        .catch(function (error) { alert('操作失败：' + error.message); });
+      return;
+    }
+
+    if (action === 'remove-tag') {
+      event.preventDefault();
+      if (!confirm('从文章中移除标签「' + button.dataset.tag + '」？')) return;
+      api('/admin/posts/remove-tag', { slug: button.dataset.slug, tag: button.dataset.tag })
+        .then(function () { window.location.reload(); })
+        .catch(function (error) { alert('操作失败：' + error.message); });
+      return;
+    }
+
+    if (action === 'add-tag') {
+      event.preventDefault();
+      var tag = prompt('输入要添加的标签：');
+      if (tag === null) return;
+      tag = tag.trim();
+      if (!tag) return;
+      api('/admin/posts/add-tag', { slug: button.dataset.slug, tag: tag })
+        .then(function () { window.location.reload(); })
+        .catch(function (error) { alert('操作失败：' + error.message); });
+    }
   });
-}
-function updateField(slug, field, value) {
-  fetch('/admin/posts/update-field', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-    body: 'slug=' + encodeURIComponent(slug) + '&field=' + encodeURIComponent(field) + '&value=' + encodeURIComponent(value)
+
+  document.addEventListener('change', function (event) {
+    var input = event.target.closest('.js-field');
+    if (!input) return;
+    var slug = input.dataset.slug;
+    var field = input.dataset.field;
+    var value = input.value;
+
+    api('/admin/posts/update-field', { slug: slug, field: field, value: value })
+      .then(function () {
+        input.classList.add('saved');
+        setTimeout(function () { input.classList.remove('saved'); }, 1200);
+      })
+      .catch(function (error) {
+        alert('保存失败：' + error.message);
+        window.location.reload();
+      });
   });
-}
-function removeTag(slug, tag) {
-  if (!confirm('从「' + slug + '」中移除标签「' + tag + '」？')) return;
-  fetch('/admin/posts/remove-tag', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-    body: 'slug=' + encodeURIComponent(slug) + '&tag=' + encodeURIComponent(tag)
-  }).then(r => { if (r.ok) location.reload(); });
-}
-function addTag(slug) {
-  var tag = prompt('输入要添加的标签：');
-  if (!tag) return;
-  fetch('/admin/posts/add-tag', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-    body: 'slug=' + encodeURIComponent(slug) + '&tag=' + encodeURIComponent(tag.trim())
-  }).then(r => { if (r.ok) location.reload(); });
-}
+
+  document.addEventListener('submit', function (event) {
+    var form = event.target.closest('form[data-confirm]');
+    if (form && !confirm(form.dataset.confirm)) event.preventDefault();
+  });
+
+  var filter = document.getElementById('postFilter');
+  if (filter) {
+    filter.addEventListener('input', function () {
+      var query = filter.value.trim().toLowerCase();
+      var rows = document.querySelectorAll('#postTable tbody tr');
+      var visible = 0;
+      for (var i = 0; i < rows.length; i += 1) {
+        var match = !query || (rows[i].dataset.search || '').indexOf(query) !== -1;
+        rows[i].hidden = !match;
+        if (match) visible += 1;
+      }
+      var empty = document.getElementById('filterEmpty');
+      if (empty) empty.hidden = visible !== 0;
+    });
+  }
+})();
 </script>

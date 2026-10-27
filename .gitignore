@@ -2,3 +2,9 @@ node_modules/
 *.log
 categories.json
 posts-order.json
+tags.json
+sessions.json
+data/*.json
+.DS_Store
+Thumbs.db
+*.tmp

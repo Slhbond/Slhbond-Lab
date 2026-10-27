@@ -1,6 +1,6 @@
 <!-- Tags page — tag cloud + filtered posts -->
 <%
-title = activeTag ? '标签: ' + activeTag : '标签';
+title = activeTag ? '标签：' + activeTag : '标签分类';
 var maxCount = 0, minCount = Infinity;
 tags.forEach(function(t) {
   if (t.count > maxCount) maxCount = t.count;
@@ -8,29 +8,30 @@ tags.forEach(function(t) {
 });
 if (minCount === Infinity) minCount = 1;
 
-function tagStyle(count) {
-  // font-size: 12px ~ 24px
-  var ratio = maxCount > minCount ? (count - minCount) / (maxCount - minCount) : 0.5;
-  var size = Math.round(12 + ratio * 12);
-  // color: #ccc (light) ~ #111 (dark)
-  var gray = Math.round(204 - ratio * 153); // 204→51
-  var hex = gray.toString(16);
-  if (hex.length === 1) hex = '0' + hex;
-  return 'font-size: ' + size + 'px; color: #' + hex + hex + hex;
+function tagStyle(count, index) {
+  // 参考站：字号 12~28px、深浅随热度变化。
+  // 标签文章数完全相同时，用排序位置拉开差异，避免一页标签一样大。
+  var ratio;
+  if (maxCount > minCount) ratio = (count - minCount) / (maxCount - minCount);
+  else if (tags.length > 1) ratio = 1 - index / (tags.length - 1);
+  else ratio = 0.5;
+  var size = Math.round(12 + Math.sqrt(ratio) * 16);
+  var opacity = (0.55 + ratio * 0.45).toFixed(2);
+  return 'font-size: ' + size + 'px; --tag-opacity: ' + opacity;
 }
 %>
 
 <div class="tags-page">
   <div class="page-header">
-    <h1 class="page-title"><%= activeTag ? '标签: ' + activeTag : '标签' %></h1>
-    <p class="page-subtitle">共 <%= tags.length %> 个标签</p>
+    <h1 class="page-title"><%= activeTag ? '标签：' + activeTag : '标签分类' %></h1>
+    <p class="page-subtitle">目前共计 <%= tags.length %> 个标签</p>
   </div>
 
   <!-- Tag cloud — inline styled like NexT -->
   <div class="tag-cloud-wrap">
-    <% tags.forEach(function(t) { %>
-      <a href="/tags/<%= encodeURIComponent(t.name) %>/" style="<%= tagStyle(t.count) %>" class="tag-cloud-link <%= activeTag === t.name ? 'active' : '' %>">
-        #<%= t.name %>#
+    <% tags.forEach(function(t, index) { %>
+      <a href="/tags/<%= encodeURIComponent(t.name) %>/" style="<%= tagStyle(t.count, index) %>" class="tag-cloud-link <%= activeTag === t.name ? 'active' : '' %>">
+        <%= t.name %>
       </a>
     <% }) %>
   </div>
@@ -38,11 +39,11 @@ function tagStyle(count) {
   <!-- Filtered posts -->
   <% if (activeTag && posts.length > 0) { %>
     <div class="tag-posts" style="margin-top:40px;">
-      <h2 style="font-size:1.1em;margin-bottom:15px;color:#555;">包含标签「<%= activeTag %>」的文章</h2>
+      <h2 class="tag-posts-title">包含标签「<%= activeTag %>」的文章</h2>
       <ul class="archive-list">
         <% posts.forEach(function(post) { %>
           <li class="archive-item">
-            <span class="archive-item-date"><%= formatDate(post.date) %></span>
+            <span class="archive-item-date"><%= post.dateStr || formatDate(post.date) %></span>
             <a href="/post/<%= post.slug %>/" class="archive-item-title"><%= post.title %></a>
           </li>
         <% }) %>

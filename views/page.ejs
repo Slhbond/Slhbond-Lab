@@ -1,0 +1,9 @@
+<div class="static-page">
+  <div class="page-header">
+    <h1 class="page-title"><%= pageTitle %></h1>
+    <% if (typeof pageSubtitle !== 'undefined' && pageSubtitle) { %><p class="page-subtitle"><%= pageSubtitle %></p><% } %>
+  </div>
+  <div class="post-body">
+    <%- bodyHtml %>
+  </div>
+</div>

@@ -1,19 +1,336 @@
 <div class="card">
   <div class="card-header">
     <h2>关于页面</h2>
-    <span style="font-size:0.85em;color:#999;">编辑 /about 页面内容</span>
+    <span class="muted">编辑 /about 页面内容（Markdown）</span>
   </div>
 
   <% if (typeof success !== 'undefined' && success) { %>
     <div class="alert alert-success"><%= success %></div>
   <% } %>
+  <% if (typeof error !== 'undefined' && error) { %>
+    <div class="alert alert-error"><%= error %></div>
+  <% } %>
 
-  <form method="POST" action="/admin/about">
-    <div class="form-group">
-      <label>内容（Markdown 格式）</label>
-      <textarea name="body" class="form-textarea" rows="20" placeholder="用 Markdown 写关于页面..."><%= aboutBody %></textarea>
+  <form method="POST" action="/admin/about" id="aboutForm">
+    <div class="md-toolbar" id="aboutToolbar">
+      <button type="button" class="tb-btn" data-md="h2" title="二级标题">H2</button>
+      <button type="button" class="tb-btn" data-md="h3" title="三级标题">H3</button>
+      <button type="button" class="tb-btn" data-md="toc" title="插入目录 [TOC]">目录</button>
+      <span class="tb-sep"></span>
+      <button type="button" class="tb-btn" data-md="bold" title="加粗" style="font-weight:800;">B</button>
+      <button type="button" class="tb-btn" data-md="italic" title="斜体" style="font-style:italic;">I</button>
+      <button type="button" class="tb-btn" data-md="code" title="行内代码" style="font-family:Consolas,monospace;">&lt;/&gt;</button>
+      <span class="tb-sep"></span>
+      <button type="button" class="tb-btn" data-md="quote" title="引用">“ ”</button>
+      <button type="button" class="tb-btn" data-md="ul" title="无序列表">•</button>
+      <button type="button" class="tb-btn" data-md="ol" title="有序列表">1.</button>
+      <span class="tb-sep"></span>
+      <button type="button" class="tb-btn" data-md="link" title="链接">链接</button>
+      <button type="button" class="tb-btn" data-md="image" title="上传图片">图片</button>
+      <span class="tb-sep"></span>
+      <button type="button" class="tb-btn tb-preview" data-action="preview">预览</button>
+      <span class="tb-status" id="aboutStatus">未修改</span>
     </div>
-    <button type="submit" class="btn btn-primary">保存</button>
-    <a href="/about/" target="_blank" class="btn btn-outline">预览</a>
+
+    <textarea name="body" id="aboutBody" class="form-textarea about-input" rows="20"
+              spellcheck="false" placeholder="用 Markdown 写关于页面…"><%= aboutBody %></textarea>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary"><i class="fa fa-save"></i> 保存</button>
+      <a href="/about/" target="_blank" rel="noopener" class="btn btn-outline">打开页面</a>
+      <button type="button" class="btn btn-outline" data-action="draft">保存本地草稿</button>
+      <button type="button" class="btn btn-outline" data-action="clear-draft">清除草稿</button>
+    </div>
+    <input type="file" id="aboutImage" accept="image/png,image/jpeg,image/gif,image/webp" hidden>
   </form>
 </div>
+
+<div class="preview-overlay" id="aboutPreview">
+  <div class="preview-modal">
+    <div class="preview-header">
+      <h3>关于页面预览</h3>
+      <button type="button" class="preview-close" data-action="close-preview">&times;</button>
+    </div>
+    <div class="preview-body" id="aboutPreviewBody"></div>
+  </div>
+</div>
+
+<div class="toast-host" id="toastHost"></div>
+
+<style>
+  .muted { color: #999; font-weight: normal; font-size: 0.85em; }
+  .md-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 2px; padding: 6px 8px; background: #fafafa; border: 1px solid #e6e6e6; border-bottom: none; border-radius: 5px 5px 0 0; }
+  .tb-btn { min-width: 30px; height: 28px; padding: 0 7px; border: 1px solid transparent; border-radius: 4px; background: transparent; color: #555; font-size: 0.8em; font-weight: 600; cursor: pointer; }
+  .tb-btn:hover { background: #eef2f7; border-color: #dde5ee; }
+  .tb-sep { width: 1px; height: 18px; background: #e8e8e8; margin: 0 5px; }
+  .tb-preview { font-weight: 500; }
+  .tb-status { margin-left: auto; font-size: 0.75em; color: #aaa; }
+  .about-input { border-radius: 0 0 5px 5px; min-height: 360px; font-size: 14px; line-height: 1.75; }
+  .form-actions { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 14px; }
+
+  .preview-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 9999; padding: 40px 20px; overflow-y: auto; }
+  .preview-overlay.active { display: block; }
+  .preview-modal { background: #fff; border-radius: 8px; max-width: 800px; margin: 0 auto; overflow: hidden; }
+  .preview-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 1px solid #eee; background: #fafafa; }
+  .preview-header h3 { margin: 0; font-size: 1.05em; }
+  .preview-close { border: none; background: none; font-size: 1.5em; line-height: 1; color: #999; cursor: pointer; }
+  .preview-body { padding: 24px 30px; line-height: 1.85; color: #333; }
+  .preview-body h2 { margin: 18px 0 12px; font-size: 1.35em; }
+  .preview-body h3 { margin: 16px 0 10px; font-size: 1.15em; }
+  .preview-body p { margin: 0 0 15px; }
+  .preview-body blockquote { border-left: 4px solid #ddd; color: #666; padding-left: 14px; margin: 0 0 15px; }
+  .preview-body pre { background: #f7f7f7; border: 1px solid #e5e5e5; border-radius: 4px; padding: 12px; overflow: auto; }
+  .preview-body code { background: #f3f4f6; border-radius: 3px; padding: 2px 5px; color: #c7254e; }
+  .preview-body pre code { background: none; color: #333; padding: 0; }
+  .preview-body img { max-width: 100%; }
+  .preview-body table { border-collapse: collapse; width: 100%; }
+  .preview-body .table-wrap { overflow-x: auto; margin: 0 0 15px; }
+  .preview-body .table-wrap table { margin: 0; }
+  .preview-body th, .preview-body td { border: 1px solid #e3e3e3; padding: 8px 12px; }
+
+  .toast-host { position: fixed; right: 24px; bottom: 24px; z-index: 10000; display: flex; flex-direction: column; gap: 8px; }
+  .editor-toast { background: #1f2937; color: #fff; padding: 10px 16px; border-radius: 6px; font-size: 0.86em; box-shadow: 0 6px 20px rgba(0,0,0,0.22); transition: opacity .25s; max-width: 320px; }
+  .editor-toast.error { background: #c0392b; }
+  .editor-toast.out { opacity: 0; }
+</style>
+
+<script>
+(function () {
+  'use strict';
+
+  var form = document.getElementById('aboutForm');
+  var editor = document.getElementById('aboutBody');
+  var status = document.getElementById('aboutStatus');
+  var overlay = document.getElementById('aboutPreview');
+  var previewBody = document.getElementById('aboutPreviewBody');
+  var toastHost = document.getElementById('toastHost');
+  var draftKey = 'slhbond:draft:about';
+  var baseline = editor.value;
+  var dirty = false;
+  var submitting = false;
+  var FENCE = String.fromCharCode(96, 96, 96);
+  var TICK = String.fromCharCode(96);
+
+  function setStatus(text) { status.textContent = text; }
+
+  function toast(message, isError) {
+    var el = document.createElement('div');
+    el.className = 'editor-toast' + (isError ? ' error' : '');
+    el.textContent = message;
+    toastHost.appendChild(el);
+    setTimeout(function () {
+      el.classList.add('out');
+      setTimeout(function () { el.remove(); }, 260);
+    }, 2400);
+  }
+
+  function refreshDirty() {
+    dirty = editor.value !== baseline;
+    if (!dirty) setStatus('未修改');
+  }
+
+  function dispatchInput() {
+    editor.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  function wrap(before, after, placeholder) {
+    var start = editor.selectionStart;
+    var end = editor.selectionEnd;
+    var selected = editor.value.slice(start, end);
+    var inner = selected || placeholder || '';
+    editor.setRangeText(before + inner + after, start, end, 'end');
+    if (!selected && inner) editor.setSelectionRange(start + before.length, start + before.length + inner.length);
+    editor.focus();
+    dispatchInput();
+  }
+
+  function lineRange() {
+    var value = editor.value;
+    var start = value.lastIndexOf('\n', editor.selectionStart - 1) + 1;
+    var end = value.indexOf('\n', editor.selectionEnd);
+    if (end === -1) end = value.length;
+    return { start: start, end: end };
+  }
+
+  function togglePrefix(prefix) {
+    var range = lineRange();
+    var lines = editor.value.slice(range.start, range.end).split('\n');
+    var all = lines.every(function (line) { return line.indexOf(prefix) === 0; });
+    var next = lines.map(function (line) { return all ? line.slice(prefix.length) : prefix + line; }).join('\n');
+    editor.setRangeText(next, range.start, range.end, 'select');
+    editor.focus();
+    dispatchInput();
+  }
+
+  function insertToc() {
+    var start = editor.selectionStart;
+    var end = editor.selectionEnd;
+    var before = editor.value.slice(0, start);
+    var lead = before && before.slice(-1) !== '\n' ? '\n\n' : '';
+    editor.setRangeText(lead + '[TOC]' + '\n\n', start, end, 'end');
+    editor.focus();
+    dispatchInput();
+  }
+
+  function handle(action) {
+    switch (action) {
+      case 'toc': insertToc(); break;
+      case 'h2': togglePrefix('## '); break;
+      case 'h3': togglePrefix('### '); break;
+      case 'bold': wrap('**', '**', '粗体文字'); break;
+      case 'italic': wrap('*', '*', '斜体文字'); break;
+      case 'code': wrap(TICK, TICK, '代码'); break;
+      case 'quote': togglePrefix('> '); break;
+      case 'ul': togglePrefix('- '); break;
+      case 'ol': togglePrefix('1. '); break;
+      case 'link': wrap('[', '](https://example.com)', '链接文字'); break;
+      case 'image': document.getElementById('aboutImage').click(); break;
+      default: break;
+    }
+  }
+
+  document.getElementById('aboutToolbar').addEventListener('mousedown', function (event) {
+    if (event.target.closest('button[data-md]')) event.preventDefault();
+  });
+
+  document.getElementById('aboutToolbar').addEventListener('click', function (event) {
+    var button = event.target.closest('button');
+    if (!button) return;
+    event.preventDefault();
+    if (button.dataset.md) handle(button.dataset.md);
+    else if (button.dataset.action === 'preview') openPreview();
+  });
+
+  function openPreview() {
+    overlay.classList.add('active');
+    previewBody.innerHTML = '加载中…';
+    fetch('/api/preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+      body: 'body=' + encodeURIComponent(editor.value)
+    })
+      .then(function (response) {
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        return response.text();
+      })
+      .then(function (html) { previewBody.innerHTML = html; })
+      .catch(function (error) { previewBody.textContent = '预览失败：' + error.message; });
+  }
+
+  overlay.addEventListener('click', function (event) {
+    if (event.target === overlay || event.target.dataset.action === 'close-preview') overlay.classList.remove('active');
+  });
+
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape') overlay.classList.remove('active');
+    if ((event.ctrlKey || event.metaKey) && (event.key || '').toLowerCase() === 's') {
+      event.preventDefault();
+      form.requestSubmit();
+    }
+  });
+
+  editor.addEventListener('keydown', function (event) {
+    if (event.key === 'Tab') {
+      event.preventDefault();
+      editor.setRangeText('  ', editor.selectionStart, editor.selectionEnd, 'end');
+      dispatchInput();
+    }
+  });
+
+  document.getElementById('aboutImage').addEventListener('change', function () {
+    var file = this.files && this.files[0];
+    this.value = '';
+    if (!file) return;
+    if (!/^image\//.test(file.type)) { toast('请选择图片文件', true); return; }
+    if (file.size > 10 * 1024 * 1024) { toast('图片不能超过 10MB', true); return; }
+
+    var selection = { start: editor.selectionStart, end: editor.selectionEnd };
+    var reader = new FileReader();
+    reader.onload = function () {
+      fetch('/api/upload-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: reader.result, name: file.name })
+      })
+        .then(function (response) { return response.json().then(function (data) {
+          if (!response.ok) throw new Error(data.error || ('HTTP ' + response.status));
+          return data;
+        }); })
+        .then(function (result) {
+          var alt = file.name.replace(/\.[^.]+$/, '').replace(/[\[\]\n\r]/g, ' ').trim() || '图片';
+          editor.setRangeText('![' + alt + '](' + result.url + ')', selection.start, selection.end, 'end');
+          editor.focus();
+          dispatchInput();
+          toast('图片已插入');
+        })
+        .catch(function (error) { toast('上传失败：' + error.message, true); });
+    };
+    reader.readAsDataURL(file);
+  });
+
+  form.addEventListener('click', function (event) {
+    var button = event.target.closest('button[data-action]');
+    if (!button) return;
+    if (button.dataset.action === 'draft') {
+      event.preventDefault();
+      saveDraft(true);
+    } else if (button.dataset.action === 'clear-draft') {
+      event.preventDefault();
+      try { localStorage.removeItem(draftKey); } catch (_) {}
+      setStatus('已清除本地草稿');
+      toast('已清除本地草稿');
+    }
+  });
+
+  function saveDraft(manual) {
+    try {
+      localStorage.setItem(draftKey, JSON.stringify({ savedAt: Date.now(), body: editor.value }));
+      setStatus('草稿已保存 ' + new Date().toLocaleTimeString('zh-CN', { hour12: false }));
+      if (manual) toast('已保存到浏览器本地草稿');
+    } catch (error) {
+      toast('草稿保存失败', true);
+    }
+  }
+
+  editor.addEventListener('input', function () {
+    refreshDirty();
+    setStatus('未保存的修改');
+    clearTimeout(saveDraft._timer);
+    saveDraft._timer = setTimeout(function () { saveDraft(false); }, 1600);
+  });
+
+  form.addEventListener('submit', function () {
+    submitting = true;
+    dirty = false;
+    try { localStorage.removeItem(draftKey); } catch (_) {}
+  });
+
+  window.addEventListener('beforeunload', function (event) {
+    if (!dirty || submitting) return;
+    event.preventDefault();
+    event.returnValue = '';
+    return '';
+  });
+
+  // 恢复本地草稿
+  try {
+    var raw = localStorage.getItem(draftKey);
+    if (raw) {
+      var parsed = JSON.parse(raw);
+      if (parsed && parsed.body && parsed.body !== baseline) {
+        if (confirm('检测到关于页面的本地草稿（' + new Date(parsed.savedAt).toLocaleString('zh-CN') + '），是否恢复？')) {
+          editor.value = parsed.body;
+          refreshDirty();
+          setStatus('已恢复本地草稿');
+        } else {
+          localStorage.removeItem(draftKey);
+        }
+      } else {
+        localStorage.removeItem(draftKey);
+      }
+    }
+  } catch (_) {}
+
+  refreshDirty();
+})();
+</script>

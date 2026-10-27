@@ -1,12 +1,10 @@
 <!-- Single post page -->
 <% var pageTitle = post.title; %>
-<%
-// Pass data to layout
-title = post.title;
-%>
+<% title = post.title; %>
 
+<div class="post-layout">
 <article itemscope itemtype="http://schema.org/Article" class="post-block post-page">
-  <link itemprop="mainEntityOfPage" href="/post/<%= post.slug %>/">
+  <link itemprop="mainEntityOfPage" href="/post/<%= encodeURIComponent(post.slug) %>/">
 
   <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
     <meta itemprop="name" content="<%= config.author %>">
@@ -16,11 +14,17 @@ title = post.title;
     <h1 class="post-title" itemprop="name headline"><%= post.title %></h1>
 
     <div class="post-meta">
-      <% if (post.date) { %>
+      <% if (post.date || post.dateStr) { %>
         <span class="post-meta-item">
           <span class="post-meta-item-icon"><i class="far fa-calendar"></i></span>
           <span class="post-meta-item-text">发表于</span>
-          <time title="创建时间：<%= formatDate(post.date) %>" itemprop="dateCreated datePublished" datetime="<%= post.date.toISOString() %>"><%= formatDate(post.date) %></time>
+          <time title="创建时间：<%= post.dateStr || formatDate(post.date) %>" itemprop="dateCreated datePublished" datetime="<%= post.isoDate || '' %>"><%= post.dateStr || formatDate(post.date) %></time>
+        </span>
+      <% } %>
+      <% if (post.time) { %>
+        <span class="post-meta-item">
+          <span class="post-meta-item-icon"><i class="far fa-clock"></i></span>
+          <span class="post-meta-item-text"><%= post.time %></span>
         </span>
       <% } %>
       <% if (post.category) { %>
@@ -52,9 +56,38 @@ title = post.title;
     </footer>
   <% } %>
 
+  <% if ((typeof prevPost !== 'undefined' && prevPost) || (typeof nextPost !== 'undefined' && nextPost)) { %>
+    <nav class="post-nav-links" aria-label="上一篇 / 下一篇">
+      <% if (typeof prevPost !== 'undefined' && prevPost) { %>
+        <a class="post-nav-link prev" href="/post/<%= encodeURIComponent(prevPost.slug) %>/">
+          <span>&larr; 上一篇</span>
+          <strong><%= prevPost.title %></strong>
+        </a>
+      <% } %>
+      <% if (typeof nextPost !== 'undefined' && nextPost) { %>
+        <a class="post-nav-link next" href="/post/<%= encodeURIComponent(nextPost.slug) %>/">
+          <span>下一篇 &rarr;</span>
+          <strong><%= nextPost.title %></strong>
+        </a>
+      <% } %>
+    </nav>
+  <% } %>
+
   <nav class="post-nav">
     <div class="post-nav-item">
       <a href="/">&larr; 返回首页</a>
     </div>
   </nav>
 </article>
+
+<% if (typeof toc !== 'undefined' && toc.length > 0) { %>
+  <aside class="toc-rail" aria-label="文章目录">
+    <div class="toc-rail-title">目录</div>
+    <ul>
+      <% toc.forEach(function(item) { %>
+        <li class="toc-level-<%= item.level %>"><a href="#<%= item.id %>"><%= item.text %></a></li>
+      <% }); %>
+    </ul>
+  </aside>
+<% } %>
+</div>

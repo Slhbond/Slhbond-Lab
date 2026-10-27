@@ -8,6 +8,15 @@ if (typeof posts !== 'undefined') {
 %>
 
 <div class="index-page">
+  <header class="home-header">
+    <h1><%= config.homeTitle || '最新文章' %></h1>
+    <% if (config.homeSubtitle) { %><p><%= config.homeSubtitle %></p><% } %>
+  </header>
+
+  <% if (typeof homeNoticeHtml !== 'undefined' && homeNoticeHtml) { %>
+    <section class="home-notice"><%- homeNoticeHtml %></section>
+  <% } %>
+
   <% if (posts && posts.length > 0) { %>
     <% posts.forEach(function(post) { %>
       <article itemscope itemtype="http://schema.org/Article" class="post-block">
@@ -23,11 +32,11 @@ if (typeof posts !== 'undefined') {
           </h2>
 
           <div class="post-meta">
-            <% if (post.date) { %>
+            <% if (post.date || post.dateStr) { %>
               <span class="post-meta-item">
                 <span class="post-meta-item-icon"><i class="far fa-calendar"></i></span>
                 <span class="post-meta-item-text">发表于</span>
-                <time title="创建时间：<%= formatDate(post.date) %>" itemprop="dateCreated datePublished" datetime="<%= post.date.toISOString() %>"><%= formatDate(post.date) %></time>
+                <time title="创建时间：<%= post.dateStr || formatDate(post.date) %>" itemprop="dateCreated datePublished" datetime="<%= post.isoDate || '' %>"><%= post.dateStr || formatDate(post.date) %></time>
               </span>
             <% } %>
             <% if (post.category) { %>
@@ -43,12 +52,8 @@ if (typeof posts !== 'undefined') {
         </header>
 
         <div class="post-body" itemprop="articleBody">
-          <% if (post.summary) { %>
-            <p><%= post.summary %></p>
-          <% } else { %>
-            <% var text = post.body.replace(/<[^>]*>/g, '').substring(0, 200); %>
-            <p><%= text %><% if (post.body.replace(/<[^>]*>/g, '').length > 200) { %>...<% } %></p>
-          <% } %>
+          <% var excerptText = post.summary || (post.plain || ''); %>
+          <p><%= excerptText.substring(0, 200) %><% if (!post.summary && excerptText.length > 200) { %>...<% } %></p>
 
           <div class="post-button">
             <a href="/post/<%= post.slug %>/" class="btn" rel="contents">阅读全文 &raquo;</a>
